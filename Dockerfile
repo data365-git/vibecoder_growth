@@ -25,4 +25,5 @@ WORKDIR /app/server
 EXPOSE 3000
 
 # Run pending migrations then start the server.
-CMD ["sh", "-c", "pnpm db:migrate && node dist/index.js"]
+# tsc emits to dist/src/* because rootDir is the server package root (scripts/ is also included).
+CMD ["sh", "-c", "pnpm db:migrate && node dist/src/index.js"]
