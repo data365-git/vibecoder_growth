@@ -15,6 +15,7 @@ import { reportRoutes } from './routes/reports.js';
 import { growthLogRoutes } from './routes/growth-logs.js';
 import { scoreRoutes } from './routes/scores.js';
 import { settingRoutes } from './routes/settings.js';
+import { weeklyRoutes } from './routes/weekly.js';
 
 const app = new Hono();
 app.use('*', cors());
@@ -27,6 +28,7 @@ app.route('/api/reports', reportRoutes);
 app.route('/api/growth-logs', growthLogRoutes);
 app.route('/api/scores', scoreRoutes);
 app.route('/api/settings', settingRoutes);
+app.route('/api/weekly', weeklyRoutes);
 
 async function runMigrations() {
   // Resolve migrations folder relative to the compiled entry point.

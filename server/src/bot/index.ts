@@ -162,6 +162,49 @@ export function createBot(): Bot<BotContext> {
     await ctx.reply('Открой admin UI → /admin/growth/weekly чтобы подготовить weekly review.');
   });
 
+  bot.command('lockmonth', async (ctx) => {
+    if (!ctx.isManager) return ctx.reply(t.noPermission);
+    const arg = (ctx.match ?? '').toString().trim();
+    if (!/^\d{4}-\d{2}$/.test(arg)) {
+      return ctx.reply('Использование: /lockmonth YYYY-MM (например /lockmonth 2026-05)');
+    }
+    const ym = arg;
+    const vcs = await db.select().from(s.vibecoders).where(eq(s.vibecoders.active, true));
+    let lockedCount = 0;
+    let alreadyLocked = 0;
+    let missing = 0;
+    for (const vc of vcs) {
+      await computeScoreForMonth(vc.id, ym); // ensures auto values are fresh
+      const [score] = await db
+        .select()
+        .from(s.monthlyScores)
+        .where(and(eq(s.monthlyScores.vibecoderId, vc.id), eq(s.monthlyScores.yearMonth, ym)));
+      if (!score) {
+        missing++;
+        continue;
+      }
+      if (score.lockedAt) {
+        alreadyLocked++;
+        continue;
+      }
+      await db
+        .update(s.monthlyScores)
+        .set({ lockedAt: new Date() })
+        .where(eq(s.monthlyScores.id, score.id));
+      lockedCount++;
+    }
+    await ctx.reply(
+      [
+        `🔒 Lock month ${ym}`,
+        `Locked: ${lockedCount}`,
+        `Already locked: ${alreadyLocked}`,
+        missing > 0 ? `No score row (skipped): ${missing}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    );
+  });
+
   bot.catch((err) => {
     const e = err.error;
     if (e instanceof GrammyError) console.error('Telegram API error:', e.description);

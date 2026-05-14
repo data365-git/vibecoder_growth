@@ -18,16 +18,53 @@ async function activeVibecoders() {
   return db.select().from(s.vibecoders).where(eq(s.vibecoders.active, true));
 }
 
-async function dmAll(bot: Bot<BotContext>, msg: string, filter?: (vc: typeof s.vibecoders.$inferSelect) => boolean) {
+async function dmAll(
+  bot: Bot<BotContext>,
+  msg: string,
+  opts?: {
+    filter?: (vc: typeof s.vibecoders.$inferSelect) => boolean;
+    kind?: typeof s.reminderKindEnum.enumValues[number];
+  },
+) {
   const vcs = await activeVibecoders();
   for (const vc of vcs) {
     if (!vc.tgUserId) continue;
-    if (filter && !filter(vc)) continue;
+    if (opts?.filter && !opts.filter(vc)) continue;
     try {
-      await bot.api.sendMessage(Number(vc.tgUserId), msg);
+      const sent = await bot.api.sendMessage(Number(vc.tgUserId), msg);
+      if (opts?.kind) {
+        await db.insert(s.botReminders).values({
+          vibecoderId: vc.id,
+          kind: opts.kind,
+          scheduledFor: new Date(),
+          sentAt: new Date(),
+          messageId: BigInt(sent.message_id),
+        });
+      }
     } catch (err) {
       console.error(`dm fail for ${vc.id}:`, err);
     }
+  }
+}
+
+async function dmIf(
+  bot: Bot<BotContext>,
+  vc: typeof s.vibecoders.$inferSelect,
+  msg: string,
+  kind: typeof s.reminderKindEnum.enumValues[number],
+) {
+  if (!vc.tgUserId) return;
+  try {
+    const sent = await bot.api.sendMessage(Number(vc.tgUserId), msg);
+    await db.insert(s.botReminders).values({
+      vibecoderId: vc.id,
+      kind,
+      scheduledFor: new Date(),
+      sentAt: new Date(),
+      messageId: BigInt(sent.message_id),
+    });
+  } catch (e) {
+    /* noop */
   }
 }
 
@@ -36,7 +73,7 @@ export function startScheduler(bot: Bot<BotContext>) {
   cron.schedule(
     '0 9 * * 1-6',
     async () => {
-      await dmAll(bot, '☀️ Доброе утро! /standup — 5 коротких вопросов перед началом дня.');
+      await dmAll(bot, '☀️ Доброе утро! /standup — 5 коротких вопросов перед началом дня.', { kind: 'standup' });
     },
     { timezone: TZ },
   );
@@ -50,12 +87,8 @@ export function startScheduler(bot: Bot<BotContext>) {
       const reports = await db.select().from(s.dailyReports).where(eq(s.dailyReports.reportDate, ymd));
       const submittedIds = new Set(reports.filter((r) => r.submittedAt).map((r) => r.vibecoderId));
       for (const vc of vcs) {
-        if (!vc.tgUserId || submittedIds.has(vc.id)) continue;
-        try {
-          await bot.api.sendMessage(Number(vc.tgUserId), '💡 Напоминание: до 18:00 нужно отправить /report.');
-        } catch (e) {
-          /* noop */
-        }
+        if (submittedIds.has(vc.id)) continue;
+        await dmIf(bot, vc, '💡 Напоминание: до 18:00 нужно отправить /report.', 'report_soft');
       }
     },
     { timezone: TZ },
@@ -70,15 +103,8 @@ export function startScheduler(bot: Bot<BotContext>) {
       const reports = await db.select().from(s.dailyReports).where(eq(s.dailyReports.reportDate, ymd));
       const submittedIds = new Set(reports.filter((r) => r.submittedAt).map((r) => r.vibecoderId));
       for (const vc of vcs) {
-        if (!vc.tgUserId || submittedIds.has(vc.id)) continue;
-        try {
-          await bot.api.sendMessage(
-            Number(vc.tgUserId),
-            '⏰ Осталось 30 минут до закрытия окна. /report сейчас.',
-          );
-        } catch (e) {
-          /* noop */
-        }
+        if (submittedIds.has(vc.id)) continue;
+        await dmIf(bot, vc, '⏰ Осталось 30 минут до закрытия окна. /report сейчас.', 'report_final');
       }
     },
     { timezone: TZ },
@@ -141,21 +167,13 @@ export function startScheduler(bot: Bot<BotContext>) {
       const since = new Date(Date.now() - 90 * 60_000);
       const vcs = await activeVibecoders();
       for (const vc of vcs) {
-        if (!vc.tgUserId) continue;
         const recent = await db
           .select({ id: s.statusUpdates.id })
           .from(s.statusUpdates)
           .where(and(eq(s.statusUpdates.vibecoderId, vc.id), gte(s.statusUpdates.sentAt, since)))
           .limit(1);
         if (recent.length > 0) continue;
-        try {
-          await bot.api.sendMessage(
-            Number(vc.tgUserId),
-            '⚡ Offline mode активен. /status — 5 коротких вопросов.',
-          );
-        } catch (e) {
-          /* noop */
-        }
+        await dmIf(bot, vc, '⚡ Offline mode активен. /status — 5 коротких вопросов.', 'status_offline');
       }
     },
     { timezone: TZ },
@@ -175,6 +193,16 @@ export function startScheduler(bot: Bot<BotContext>) {
         } catch (e) {
           /* noop */
         }
+      }
+      // Audit row per active vibecoder (whose review is upcoming)
+      const vcs = await activeVibecoders();
+      for (const vc of vcs) {
+        await db.insert(s.botReminders).values({
+          vibecoderId: vc.id,
+          kind: 'weekly_review',
+          scheduledFor: new Date(),
+          sentAt: new Date(),
+        });
       }
     },
     { timezone: TZ },
