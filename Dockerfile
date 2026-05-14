@@ -8,9 +8,10 @@ COPY server/package.json ./server/
 COPY web/package.json ./web/
 RUN pnpm install --frozen-lockfile
 
-# Build server only (web is not deployed by this image)
+# Build server (Node) and web (Vite → static assets)
 COPY server ./server
-RUN pnpm --filter @vg/server build
+COPY web ./web
+RUN pnpm --filter @vg/server build && pnpm --filter @vg/web build
 
 FROM node:22-alpine AS runner
 RUN corepack enable && corepack prepare pnpm@11.1.1 --activate

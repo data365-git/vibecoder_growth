@@ -1,9 +1,11 @@
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
+import { serveStatic } from '@hono/node-server/serve-static';
 import { cors } from 'hono/cors';
 import { webhookCallback } from 'grammy';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import path from 'node:path';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { env } from './env.js';
 import { db } from './db/client.js';
@@ -29,6 +31,31 @@ app.route('/api/growth-logs', growthLogRoutes);
 app.route('/api/scores', scoreRoutes);
 app.route('/api/settings', settingRoutes);
 app.route('/api/weekly', weeklyRoutes);
+
+// ---------- Serve the admin web UI ----------
+// In Docker: server CWD is /app/server, web build is at /app/web/dist.
+// Locally: from server/ the web build is at ../web/dist.
+const here = path.dirname(fileURLToPath(import.meta.url));
+const webDistCandidates = [
+  path.resolve(process.cwd(), '../web/dist'),
+  path.resolve(here, '../../../web/dist'),
+  path.resolve(here, '../../web/dist'),
+];
+const webRoot = webDistCandidates.find((p) => fs.existsSync(path.join(p, 'index.html')));
+if (webRoot) {
+  console.log(`[web] serving static UI from ${webRoot}`);
+  app.use('/assets/*', serveStatic({ root: path.relative(process.cwd(), webRoot) || '.' }));
+  app.use('/favicon.ico', serveStatic({ path: path.join(webRoot, 'favicon.ico') }));
+  // SPA fallback: any non-API, non-bot GET returns index.html so React Router takes over.
+  app.get('*', async (c) => {
+    const p = c.req.path;
+    if (p.startsWith('/api/') || p === '/bot' || p === '/health') return c.notFound();
+    const indexHtml = fs.readFileSync(path.join(webRoot, 'index.html'), 'utf-8');
+    return c.html(indexHtml);
+  });
+} else {
+  console.warn('[web] no web/dist found — admin UI will 404. Run `pnpm --filter @vg/web build`.');
+}
 
 async function runMigrations() {
   // Resolve migrations folder relative to the compiled entry point.
