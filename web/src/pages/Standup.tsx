@@ -21,20 +21,23 @@ export default function Standup() {
     queryFn: () => api<Standup[]>(`/reports/standup/today?date=${date}`),
   });
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Stand-up — {date}</h1>
+    <div className="space-y-6">
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-[26px] leading-tight font-bold tracking-tight">Stand-up</h1>
+          <p className="text-sm text-muted-foreground mt-1">Morning answers, {date}</p>
+        </div>
         <input
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="rounded border bg-background px-3 py-2 text-sm"
+          className="rounded-xl border border-border/70 bg-card px-3.5 py-2.5 text-sm"
         />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {(list.data ?? []).map((s) => (
-          <div key={s.id} className="rounded-lg border bg-card p-4 space-y-2 text-sm">
-            <div className="text-xs text-muted-foreground">vc#{s.vibecoderId}</div>
+          <div key={s.id} className="card-soft p-5 space-y-3 text-sm">
+            <div className="chip-primary">vc #{s.vibecoderId}</div>
             <Field label="Завершил вчера">{s.completedYesterday}</Field>
             <Field label="Завершу сегодня">{s.willCompleteToday}</Field>
             <Field label="Deadline">{s.mainDeadline ?? '-'}</Field>
@@ -42,6 +45,9 @@ export default function Standup() {
             <Field label="К концу дня">{s.endOfDayDeliverable}</Field>
           </div>
         ))}
+        {(list.data ?? []).length === 0 && (
+          <div className="text-sm text-muted-foreground">Stand-ups за этот день не отправлены.</div>
+        )}
       </div>
     </div>
   );
@@ -50,8 +56,8 @@ export default function Standup() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="whitespace-pre-wrap">{children}</div>
+      <div className="text-xs font-medium text-muted-foreground">{label}</div>
+      <div className="whitespace-pre-wrap text-foreground mt-0.5">{children}</div>
     </div>
   );
 }

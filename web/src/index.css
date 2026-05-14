@@ -4,44 +4,69 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    /* Canvas */
+    --background: 220 14% 96%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
+    --muted: 220 14% 96%;
     --muted-foreground: 215 16% 47%;
-    --accent: 210 40% 96%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 221 83% 53%;
+
+    /* Brand */
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --primary-soft: 221 100% 96%;
+
+    /* Semantic accents (also used as soft tinted backgrounds) */
+    --success: 142 71% 45%;
+    --success-soft: 138 76% 95%;
+    --warning: 32 95% 50%;
+    --warning-soft: 38 92% 95%;
+    --danger: 0 84% 60%;
+    --danger-soft: 0 86% 96%;
+
+    /* Shadcn compatibility */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --accent: 220 14% 96%;
     --accent-foreground: 222 47% 11%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 221 83% 53%;
-    --radius: 0.5rem;
+    --destructive-foreground: 0 0% 100%;
+
+    --radius: 1rem;
   }
-  .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 14%;
-    --card-foreground: 210 40% 98%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 224 76% 48%;
+
+  * {
+    @apply border-border;
   }
-  * { @apply border-border; }
-  body { @apply bg-background text-foreground antialiased; font-family: ui-sans-serif, system-ui, sans-serif; }
+  html,
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-feature-settings: 'cv02', 'cv11', 'ss01';
+  }
+}
+
+@layer components {
+  .card-soft {
+    @apply rounded-2xl bg-card border border-border/60 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_1px_3px_rgba(16,24,40,0.03)];
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .chip-success {
+    @apply chip bg-success-soft text-success;
+  }
+  .chip-warning {
+    @apply chip bg-warning-soft text-warning;
+  }
+  .chip-danger {
+    @apply chip bg-danger-soft text-danger;
+  }
+  .chip-primary {
+    @apply chip bg-primary-soft text-primary;
+  }
 }

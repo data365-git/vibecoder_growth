@@ -90,34 +90,38 @@ export default function WeeklyReview() {
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-semibold">Weekly review</h1>
-        <button
-          onClick={() => setWeekStart(shiftWeek(weekStart, -1))}
-          className="rounded border px-2 py-1 text-sm"
-        >
-          ◀ prev
-        </button>
-        <div className="text-sm font-medium">
-          {list.data?.rangeStart} → {list.data?.rangeEnd}
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-[26px] leading-tight font-bold tracking-tight">Weekly review</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {list.data?.rangeStart} → {list.data?.rangeEnd}
+          </p>
         </div>
-        <button
-          onClick={() => setWeekStart(shiftWeek(weekStart, 1))}
-          className="rounded border px-2 py-1 text-sm"
-        >
-          next ▶
-        </button>
-        <button
-          onClick={() => setWeekStart(getCurrentMondayYmd())}
-          className="rounded border px-2 py-1 text-sm"
-        >
-          today
-        </button>
+        <div className="flex gap-1.5">
+          <button
+            onClick={() => setWeekStart(shiftWeek(weekStart, -1))}
+            className="rounded-xl border border-border/70 bg-card px-3 py-2 text-sm hover:bg-muted"
+          >
+            ◀ Prev
+          </button>
+          <button
+            onClick={() => setWeekStart(getCurrentMondayYmd())}
+            className="rounded-xl border border-border/70 bg-card px-3 py-2 text-sm hover:bg-muted"
+          >
+            This week
+          </button>
+          <button
+            onClick={() => setWeekStart(shiftWeek(weekStart, 1))}
+            className="rounded-xl border border-border/70 bg-card px-3 py-2 text-sm hover:bg-muted"
+          >
+            Next ▶
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-12 gap-4">
-        <aside className="col-span-3 border rounded p-2 space-y-1 bg-card">
+        <aside className="col-span-12 lg:col-span-3 card-soft p-2 space-y-1">
           {(list.data?.rows ?? []).map((r) => {
             const reviewed = !!r.existing?.reviewedAt;
             const isActive = (selectedVc ?? list.data?.rows[0]?.vibecoderId) === r.vibecoderId;
@@ -125,35 +129,41 @@ export default function WeeklyReview() {
               <button
                 key={r.vibecoderId}
                 onClick={() => setSelectedVc(r.vibecoderId)}
-                className={`block w-full text-left rounded px-3 py-2 text-sm hover:bg-accent ${
-                  isActive ? 'bg-accent font-medium' : ''
+                className={`block w-full text-left rounded-xl px-3 py-2.5 text-sm transition ${
+                  isActive ? 'bg-primary-soft text-primary font-semibold' : 'hover:bg-muted'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span>{r.fullNameRu}</span>
-                  <span className="text-xs">{reviewed ? '✅' : '⏳'}</span>
+                  {reviewed ? (
+                    <span className="chip-success text-[10px] py-0">reviewed</span>
+                  ) : (
+                    <span className="chip bg-muted text-muted-foreground text-[10px] py-0">pending</span>
+                  )}
                 </div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-[11px] text-muted-foreground mt-0.5">
                   {r.designRefs.length}d · {r.businessNotes.length}b · {r.learningNotes.length}l · {r.explainNotes.length}e
                 </div>
               </button>
             );
           })}
           {(list.data?.rows ?? []).length === 0 && (
-            <div className="text-xs text-muted-foreground p-2">Нет активных vibecoder’ов.</div>
+            <div className="text-xs text-muted-foreground p-3">Нет активных vibecoder’ов.</div>
           )}
         </aside>
 
-        <section className="col-span-9 space-y-4">
+        <section className="col-span-12 lg:col-span-9 space-y-4">
           {row ? (
-            <ReviewPanel
-              key={`${weekStart}-${row.vibecoderId}`}
-              row={row}
-              weekStart={weekStart}
-              onSaved={() => qc.invalidateQueries({ queryKey: ['weekly', weekStart] })}
-            />
+            <div className="card-soft p-6">
+              <ReviewPanel
+                key={`${weekStart}-${row.vibecoderId}`}
+                row={row}
+                weekStart={weekStart}
+                onSaved={() => qc.invalidateQueries({ queryKey: ['weekly', weekStart] })}
+              />
+            </div>
           ) : (
-            <div className="text-sm text-muted-foreground">Загрузка…</div>
+            <div className="text-sm text-muted-foreground card-soft p-6">Загрузка…</div>
           )}
         </section>
       </div>

@@ -20,7 +20,7 @@ export default function Login() {
       });
       setToken(res.token);
       navigate('/daily');
-    } catch (err) {
+    } catch {
       setError('Неверный email или пароль');
     } finally {
       setBusy(false);
@@ -28,34 +28,53 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-lg border bg-card p-8 shadow">
-        <h1 className="text-xl font-semibold">data365 · Growth admin</h1>
-        <div>
-          <label className="text-sm">Email</label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded border bg-background px-3 py-2 text-sm"
-          />
+    <div className="min-h-screen flex items-center justify-center bg-background p-6">
+      <form
+        onSubmit={submit}
+        className="w-full max-w-md card-soft p-8 space-y-5"
+      >
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-blue-400 flex items-center justify-center text-white font-bold shadow-sm">
+            d
+          </div>
+          <div className="leading-tight">
+            <h1 className="text-base font-semibold tracking-tight">data365 · Growth</h1>
+            <p className="text-xs text-muted-foreground">Sign in to continue</p>
+          </div>
         </div>
-        <div>
-          <label className="text-sm">Пароль</label>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded border bg-background px-3 py-2 text-sm"
-          />
+
+        <div className="space-y-3 pt-2">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Email</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1.5 w-full rounded-xl border border-border/70 bg-card px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
+              placeholder="admin@data365.local"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Пароль</label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1.5 w-full rounded-xl border border-border/70 bg-card px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
+            />
+          </div>
         </div>
-        {error && <div className="text-sm text-destructive">{error}</div>}
+
+        {error && (
+          <div className="text-sm text-danger bg-danger-soft rounded-lg px-3 py-2">{error}</div>
+        )}
+
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded bg-primary text-primary-foreground px-3 py-2 text-sm font-medium disabled:opacity-50"
+          className="w-full rounded-xl bg-primary text-white px-3 py-2.5 text-sm font-semibold disabled:opacity-50 hover:bg-primary/90 transition shadow-sm"
         >
           {busy ? 'Вход…' : 'Войти'}
         </button>

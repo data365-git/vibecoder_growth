@@ -12,3 +12,7 @@ build
 coverage
 .turbo
 .cache
+*.tsbuildinfo
+# local design references / mocks
+ChatGPT Image*.png
+
