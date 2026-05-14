@@ -1,7 +1,9 @@
 packages:
   - server
   - web
-allowBuilds:
-  esbuild: set this to true or false
 onlyBuiltDependencies:
   - esbuild
+ignoredBuiltDependencies:
+  - bcrypt
+allowBuilds:
+  esbuild: true
