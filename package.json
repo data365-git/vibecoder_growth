@@ -6,7 +6,8 @@
   "scripts": {
     "dev:server": "pnpm --filter @vg/server dev",
     "dev:web": "pnpm --filter @vg/web dev",
-    "build": "pnpm -r build",
+    "build": "pnpm --filter @vg/server build",
+    "start": "pnpm --filter @vg/server start",
     "db:generate": "pnpm --filter @vg/server db:generate",
     "db:migrate": "pnpm --filter @vg/server db:migrate",
     "notion:setup": "pnpm --filter @vg/server notion:setup",

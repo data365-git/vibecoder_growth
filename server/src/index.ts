@@ -2,7 +2,11 @@ import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { cors } from 'hono/cors';
 import { webhookCallback } from 'grammy';
+import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { env } from './env.js';
+import { db } from './db/client.js';
 import { createBot } from './bot/index.js';
 import { startScheduler } from './scheduler.js';
 import { authRoutes } from './routes/auth.js';
@@ -24,7 +28,32 @@ app.route('/api/growth-logs', growthLogRoutes);
 app.route('/api/scores', scoreRoutes);
 app.route('/api/settings', settingRoutes);
 
+async function runMigrations() {
+  // Resolve migrations folder relative to the compiled entry point.
+  // After build: dist/index.js → ../src/db/migrations. But we also copy src tree at build, so try both.
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    path.resolve(here, '../src/db/migrations'),
+    path.resolve(here, './db/migrations'),
+    path.resolve(process.cwd(), 'src/db/migrations'),
+    path.resolve(process.cwd(), 'server/src/db/migrations'),
+  ];
+  for (const folder of candidates) {
+    try {
+      console.log(`[migrate] trying ${folder}`);
+      await migrate(db, { migrationsFolder: folder });
+      console.log('[migrate] applied');
+      return;
+    } catch (err) {
+      if (err instanceof Error && /ENOENT|no such file/.test(err.message)) continue;
+      throw err;
+    }
+  }
+  throw new Error('No migrations folder found in any candidate path');
+}
+
 async function main() {
+  await runMigrations();
   let bot;
   if (env.GROWTH_BOT_TOKEN && env.BOT_MODE !== 'off') {
     bot = createBot();
