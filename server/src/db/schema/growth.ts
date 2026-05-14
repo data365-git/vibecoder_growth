@@ -75,7 +75,7 @@ export const growthManagers = pgTable(
   {
     id: serial('id').primaryKey(),
     adminId: integer('admin_id').references(() => admins.id, { onDelete: 'cascade' }),
-    tgUserId: bigint('tg_user_id', { mode: 'bigint' }).notNull(),
+    tgUserId: bigint('tg_user_id', { mode: 'bigint' }),
     tgUsername: varchar('tg_username', { length: 64 }),
     fullNameRu: varchar('full_name_ru', { length: 255 }).notNull(),
     canToggleOffline: boolean('can_toggle_offline').notNull().default(true),
@@ -84,6 +84,7 @@ export const growthManagers = pgTable(
   },
   (t) => ({
     tgUserIdx: uniqueIndex('managers_tg_user_unique').on(t.tgUserId),
+    tgUsernameIdx: index('managers_tg_username_idx').on(t.tgUsername),
   }),
 );
 

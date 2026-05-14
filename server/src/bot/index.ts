@@ -52,26 +52,51 @@ export function createBot(): Bot<BotContext> {
     ),
   );
 
-  // /start — onboarding / link by username if not linked
+  // /start — onboarding / link by username if not linked.
+  // Looks up both vibecoders and growth_managers tables so the same Telegram
+  // user can play either role (or both — Saidumar is dual-role).
   bot.command('start', async (ctx) => {
-    if (ctx.vibecoderId) {
-      const [vc] = await db.select().from(s.vibecoders).where(eq(s.vibecoders.id, ctx.vibecoderId));
-      await ctx.reply(t.linked(vc?.fullNameRu ?? ''), { reply_markup: ctx.isManager ? managerMenu : mainMenu });
-      return;
-    }
     const username = ctx.from?.username?.toLowerCase();
-    if (username) {
+    const tgId = ctx.from?.id;
+
+    // Auto-link manager row if we have a username match but no tg_user_id yet.
+    if (username && tgId && !ctx.managerId) {
+      const [mgr] = await db
+        .select()
+        .from(s.growthManagers)
+        .where(and(eq(sql`lower(${s.growthManagers.tgUsername})`, username), isNull(s.growthManagers.tgUserId)));
+      if (mgr) {
+        await db.update(s.growthManagers).set({ tgUserId: BigInt(tgId) }).where(eq(s.growthManagers.id, mgr.id));
+        ctx.managerId = mgr.id;
+        ctx.isManager = true;
+      }
+    }
+
+    // Auto-link vibecoder row.
+    if (username && tgId && !ctx.vibecoderId) {
       const [vc] = await db
         .select()
         .from(s.vibecoders)
         .where(and(eq(sql`lower(${s.vibecoders.tgUsername})`, username), eq(s.vibecoders.active, true)));
       if (vc) {
-        await db.update(s.vibecoders).set({ tgUserId: BigInt(ctx.from!.id) }).where(eq(s.vibecoders.id, vc.id));
+        await db.update(s.vibecoders).set({ tgUserId: BigInt(tgId) }).where(eq(s.vibecoders.id, vc.id));
         ctx.vibecoderId = vc.id;
-        await ctx.reply(t.linked(vc.fullNameRu), { reply_markup: mainMenu });
-        return;
       }
     }
+
+    if (ctx.vibecoderId || ctx.isManager) {
+      let name = '';
+      if (ctx.vibecoderId) {
+        const [vc] = await db.select().from(s.vibecoders).where(eq(s.vibecoders.id, ctx.vibecoderId));
+        name = vc?.fullNameRu ?? '';
+      } else if (ctx.managerId) {
+        const [mgr] = await db.select().from(s.growthManagers).where(eq(s.growthManagers.id, ctx.managerId));
+        name = mgr?.fullNameRu ?? '';
+      }
+      await ctx.reply(t.linked(name), { reply_markup: ctx.isManager ? managerMenu : mainMenu });
+      return;
+    }
+
     await ctx.reply(t.notLinked);
   });
 
