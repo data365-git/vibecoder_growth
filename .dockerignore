@@ -1,0 +1,14 @@
+node_modules
+**/node_modules
+**/.pnpm-store
+dist
+**/dist
+.env
+.env.*
+*.log
+.git
+.github
+.vscode
+.idea
+web/dist
+.DS_Store
