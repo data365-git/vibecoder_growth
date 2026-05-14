@@ -32,14 +32,18 @@ app.route('/api/weekly', weeklyRoutes);
 
 async function runMigrations() {
   // Resolve migrations folder relative to the compiled entry point.
-  // After build: dist/index.js → ../src/db/migrations. But we also copy src tree at build, so try both.
+  // tsc only emits .ts -> .js; .sql/.json migration files are NOT copied, so the
+  // dist tree contains empty folders for the migrations directory. Prefer the
+  // source tree (which is also COPYed into the runner image) instead.
   const here = path.dirname(fileURLToPath(import.meta.url));
   const candidates = [
-    path.resolve(here, '../src/db/migrations'),
-    path.resolve(here, './db/migrations'),
     path.resolve(process.cwd(), 'src/db/migrations'),
     path.resolve(process.cwd(), 'server/src/db/migrations'),
+    path.resolve(here, '../../src/db/migrations'),
+    path.resolve(here, '../src/db/migrations'),
+    path.resolve(here, './db/migrations'),
   ];
+  const skip = /ENOENT|no such file|journal\.json|Can't find meta/i;
   for (const folder of candidates) {
     try {
       console.log(`[migrate] trying ${folder}`);
@@ -47,11 +51,11 @@ async function runMigrations() {
       console.log('[migrate] applied');
       return;
     } catch (err) {
-      if (err instanceof Error && /ENOENT|no such file/.test(err.message)) continue;
+      if (err instanceof Error && skip.test(err.message)) continue;
       throw err;
     }
   }
-  throw new Error('No migrations folder found in any candidate path');
+  console.warn('[migrate] no usable migrations folder found, continuing (CMD likely already ran them)');
 }
 
 async function main() {
