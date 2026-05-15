@@ -21,12 +21,18 @@ function dayRange(ymd: string): { start: Date; end: Date } {
   return { start, end };
 }
 
+// UTC+5 fixed offset. Asia/Tashkent has no DST, so this is always correct.
+// We avoid toLocaleString→new Date() because when TZ=Asia/Tashkent is set in
+// the process env, Node treats the locale string as local (Tashkent) time,
+// then toISOString() converts back to UTC — resulting in the wrong time shown.
+const TZ_OFFSET_MS = 5 * 60 * 60 * 1000;
+
 function hm(d: Date): string {
-  return new Date(d.toLocaleString('en-US', { timeZone: env.TZ })).toISOString().slice(11, 16);
+  return new Date(d.getTime() + TZ_OFFSET_MS).toISOString().slice(11, 16);
 }
 
 function ymdHm(d: Date): string {
-  const s = new Date(d.toLocaleString('en-US', { timeZone: env.TZ })).toISOString();
+  const s = new Date(d.getTime() + TZ_OFFSET_MS).toISOString();
   return `${s.slice(0, 10)} ${s.slice(11, 16)}`;
 }
 
