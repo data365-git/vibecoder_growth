@@ -4,7 +4,6 @@ import { and, asc, desc, eq, gte, lte } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import * as s from '../db/schema/growth.js';
 import { requireAdmin } from './_auth-mw.js';
-import { syncNow } from '../notion/sync.js';
 
 export const weeklyRoutes = new Hono();
 weeklyRoutes.use('*', requireAdmin);
@@ -156,15 +155,6 @@ weeklyRoutes.post('/', async (c) => {
         reviewedAt,
       })
       .returning();
-  }
-
-  // Sync to Notion if reviewed
-  if (saved && reviewedAt) {
-    try {
-      await syncNow('weekly_growth_reviews', saved as any);
-    } catch (err) {
-      console.error('weekly sync to Notion failed:', err);
-    }
   }
 
   return c.json(saved);

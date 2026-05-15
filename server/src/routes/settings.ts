@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import * as s from '../db/schema/growth.js';
 import { requireAdmin } from './_auth-mw.js';
+import { env } from '../env.js';
 
 export const settingRoutes = new Hono();
 settingRoutes.use('*', requireAdmin);
@@ -13,6 +13,17 @@ settingRoutes.get('/', async (c) => {
   const obj: Record<string, unknown> = {};
   for (const r of rows) obj[r.key] = r.value;
   return c.json(obj);
+});
+
+// Read-only system status surface for the admin UI. Deliberately does NOT
+// expose the bot token or webhook URL — both are secret-equivalent.
+settingRoutes.get('/status', (c) => {
+  return c.json({
+    botMode: env.BOT_MODE,
+    groupConfigured: Boolean(env.GROWTH_GROUP_CHAT_ID),
+    timezone: env.TZ,
+    version: process.env.npm_package_version ?? '0.1.0',
+  });
 });
 
 const putSchema = z.object({ key: z.string().min(1).max(64), value: z.unknown() });

@@ -15,6 +15,13 @@
       "when": 1778762535906,
       "tag": "0001_goofy_longshot",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778818668461,
+      "tag": "0002_safe_squirrel_girl",
+      "breakpoints": true
     }
   ]
 }

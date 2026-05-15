@@ -7,8 +7,10 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { lt } from 'drizzle-orm';
 import { env } from './env.js';
 import { db } from './db/client.js';
+import * as schema from './db/schema/growth.js';
 import { createBot } from './bot/index.js';
 import { startScheduler } from './scheduler.js';
 import { authRoutes } from './routes/auth.js';
@@ -85,18 +87,101 @@ async function runMigrations() {
   console.warn('[migrate] no usable migrations folder found, continuing (CMD likely already ran them)');
 }
 
+// Telegram only allows one process per bot token to call getUpdates at a
+// time. During a Railway rotation, the old container is still polling for
+// a few seconds when the new one starts — without retry, the new bot
+// crashes with 409 Conflict and the deploy is marked failed. We also drop
+// pending updates once, which clears any half-done conversation sessions
+// left over from a previous crash (the ACHAM problem).
+function startPollingWithRetry(bot: ReturnType<typeof createBot>) {
+  const MAX_ATTEMPTS = 8;
+  const DELAY_MS = 5_000;
+  let attempt = 0;
+
+  const run = async () => {
+    attempt++;
+    try {
+      if (attempt === 1) {
+        try {
+          await bot.api.deleteWebhook({ drop_pending_updates: true });
+        } catch (e) {
+          console.warn('[bot] deleteWebhook failed (continuing):', e);
+        }
+      }
+      await bot.start({ onStart: () => console.log(`[bot] polling started (attempt ${attempt})`) });
+    } catch (err: any) {
+      const code = err?.error_code ?? err?.code;
+      const is409 = code === 409 || /409|terminated by other getUpdates/i.test(String(err?.description ?? err?.message ?? err));
+      if (is409 && attempt < MAX_ATTEMPTS) {
+        console.log(`[bot] 409 conflict — waiting ${DELAY_MS}ms for the old instance to die (attempt ${attempt}/${MAX_ATTEMPTS})`);
+        await new Promise((r) => setTimeout(r, DELAY_MS));
+        return run();
+      }
+      console.error('[bot] polling failed permanently:', err?.description ?? err?.message ?? err);
+      process.exit(1);
+    }
+  };
+
+  // Fire-and-forget: bot.start() blocks until polling exits, so the rest
+  // of main() must continue without awaiting (matching prior behavior).
+  void run();
+}
+
+// Sweep half-finished conversation sessions that have been sitting idle
+// for more than an hour. A normal wizard takes ~2 minutes; anything that
+// old is either a forgotten attempt or a session from before a crash. The
+// 1-hour grace is enough to preserve someone actively typing, but it
+// reliably clears the kind of zombie session that crash-loops the bot on
+// restart (we hit this with the ACHAM /status replay).
+async function sweepStaleSessions() {
+  const TTL_MS = 24 * 60 * 60 * 1000;
+  // 5-minute window: a real wizard takes ~2 min; anything older is a
+  // crash-loop zombie or a forgotten attempt. Tighter than 1 hour so a
+  // user who hit a stuck conversation gets unstuck on next bot restart.
+  const cutoff = new Date(Date.now() + TTL_MS - 5 * 60 * 1000);
+  try {
+    const deleted = await db
+      .delete(schema.botSessions)
+      .where(lt(schema.botSessions.expiresAt, cutoff))
+      .returning({ key: schema.botSessions.key });
+    if (deleted.length > 0) {
+      console.log(`[boot] cleared ${deleted.length} stale bot session(s)`);
+    }
+  } catch (err) {
+    console.warn('[boot] sweepStaleSessions failed (continuing):', err);
+  }
+}
+
 async function main() {
+  console.log('[boot] build marker BC-2026-05-15-A1');
   await runMigrations();
-  let bot;
+  await sweepStaleSessions();
+  let bot: ReturnType<typeof createBot> | undefined;
   if (env.GROWTH_BOT_TOKEN && env.BOT_MODE !== 'off') {
     bot = createBot();
+    const botInstance = bot;
     if (env.BOT_MODE === 'webhook') {
       if (!env.WEBHOOK_URL) throw new Error('WEBHOOK_URL required for webhook mode');
       app.post('/bot', webhookCallback(bot, 'hono'));
-      await bot.api.setWebhook(`${env.WEBHOOK_URL.replace(/\/$/, '')}/bot`);
-      console.log('[bot] webhook configured');
+      const webhookUrl = `${env.WEBHOOK_URL.replace(/\/$/, '')}/bot`;
+      // drop_pending_updates clears any updates Telegram has buffered from a
+      // previous run that may now be stale or trigger replay crashes.
+      // A previous deploy had its setWebhook silently undone by an old
+      // polling container's bot.start() (which auto-calls deleteWebhook on
+      // each retry while crashing in a loop) — so we also re-assert the
+      // webhook periodically to survive any future race like that.
+      await bot.api.setWebhook(webhookUrl, { drop_pending_updates: true });
+      console.log('[bot] webhook configured at', webhookUrl);
+      setInterval(
+        () => {
+          botInstance.api.setWebhook(webhookUrl).catch((e: any) =>
+            console.warn('[bot] periodic setWebhook failed:', e?.description ?? e),
+          );
+        },
+        10 * 60 * 1000,
+      );
     } else {
-      bot.start({ onStart: () => console.log('[bot] polling started') });
+      startPollingWithRetry(bot);
     }
     startScheduler(bot);
   } else {

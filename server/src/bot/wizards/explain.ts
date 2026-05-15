@@ -3,7 +3,6 @@ import { db } from '../../db/client.js';
 import * as s from '../../db/schema/growth.js';
 import { t } from '../i18n.ru.js';
 import { askText } from './helpers.js';
-import { syncNow } from '../../notion/sync.js';
 import type { BotContext } from '../types.js';
 
 export async function explainConversation(conversation: Conversation<BotContext, BotContext>, ctx: BotContext) {
@@ -19,7 +18,6 @@ export async function explainConversation(conversation: Conversation<BotContext,
       .values({ vibecoderId, technicalVersion, simpleVersion, metaphor, businessValue })
       .returning();
     await ctx.reply(t.done);
-    if (row) await syncNow('explain_notes', row as any);
   } catch (e) {
     if (e instanceof Error && e.message === '__cancelled__') {
       await ctx.reply(t.cancel);

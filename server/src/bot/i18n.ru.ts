@@ -1,7 +1,12 @@
 export const t = {
   // Greetings / system
-  notLinked: 'Привет! Я не нашёл тебя в списке vibecoder’ов. Попроси менеджера добавить твой @username и попробуй снова.',
-  linked: (name: string) => `Привет, ${name}! 👋\nТы подключён к системе Growth.\n\nКоманды:\n/report — daily report\n/standup — утренний stand-up\n/status — status update (только когда менеджер offline)\n/design — design reference\n/business — business note\n/learning — professional learning\n/explain — объясни простыми словами\n/book — book reflection\n/brief — task ownership brief\n/delivery — final delivery\n/myscore — мой текущий score`,
+  notLinked:
+    'Привет! Я не нашёл тебя в списке vibecoder’ов. Попроси менеджера добавить твой @username и попробуй снова.',
+  notLinkedWithUsername: (username: string | undefined) =>
+    username
+      ? `Привет! Я не нашёл тебя в списке vibecoder’ов. Мой бот видит твой Telegram username как @${username}. Попроси менеджера открыть Team page и проверить, что твой @username записан ровно так. Потом отправь /start.`
+      : `Привет! У тебя в Telegram не установлен @username — без него я не могу тебя привязать. Зайди в Settings → Edit profile в Telegram, поставь username, и попробуй снова.`,
+  linked: (name: string) => `Привет, ${name}! 👋\nТы подключён к Growth-боту.\n\nКак работаем:\n— Ты пишешь команды мне в личку.\n— Я добавляю всё в один пост за день в общей группе — менеджер видит твой день одной картой.\n\nКоманды:\n☀️ /standup — утренний план (5 вопросов)\n⚡ /status — короткий статус: над чем работаешь сейчас\n📋 /report — отчёт за день (до 18:00)\n📐 /brief — взять задачу + self-deadline\n📦 /delivery <id> — закрыть brief\n❌ /cancel — отменить текущий wizard`,
   cancel: 'Отменено.',
   cancelHint: 'Напиши /cancel чтобы отменить.',
   done: '✅ Сохранено.',
@@ -29,13 +34,12 @@ export const t = {
   standupQ5: '5/5 — Какой конкретный результат покажешь к концу дня?',
   standupAlready: 'Stand-up за сегодня уже отправлен.',
 
-  // Status (offline mode)
+  // Status (in-day update)
   statusStart: '⚡ Status update. 5 коротких вопросов.\n\n1/5 — Над какой задачей работаешь сейчас?',
   statusQ2: '2/5 — Что сделал с последнего update?',
   statusQ3: '3/5 — Что делаешь прямо сейчас?',
   statusQ4: '4/5 — Есть ли blocker? (или "нет")',
   statusQ5: '5/5 — Успеваешь по deadline? (да / нет)',
-  statusNotOffline: 'Status updates включены только когда менеджер написал /offline. Сейчас не нужно.',
 
   // Design
   designStart: '🎨 Design reference.\n\n1/4 — Пришли ссылку (Pinterest, Dribbble, Mobbin, etc.)',
@@ -100,4 +104,9 @@ export const t = {
   offlineOff: '🌞 Offline mode выключен.',
   offlineAlreadyOn: 'Offline mode уже включён.',
   offlineAlreadyOff: 'Offline mode и так выключен.',
+
+  // Wrong-topic nudge (sent in DM when a vibecoder writes free text into
+  // a topic instead of running the wizard).
+  wrongTopicNudge: (cmd: string) =>
+    `👀 Не пиши свободным текстом в этот топик — данные потеряются. Открой меня в личке и запусти ${cmd}. Я сам опубликую запись в нужный топик и подпишу твоим именем.`,
 };

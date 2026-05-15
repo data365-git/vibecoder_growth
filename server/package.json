@@ -10,7 +10,6 @@
     "start:railpack": "node dist/index.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
-    "notion:setup": "tsx scripts/notion-setup.ts",
     "seed": "tsx scripts/seed.ts",
     "seed:team": "tsx scripts/seed-team.ts",
     "seed:demo": "tsx scripts/seed-demo.ts",
@@ -18,7 +17,6 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",
-    "@notionhq/client": "^2.2.15",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.38.3",

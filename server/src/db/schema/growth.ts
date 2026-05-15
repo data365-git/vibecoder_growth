@@ -367,6 +367,27 @@ export const botReminders = pgTable(
   (t) => ({ byVc: index('reminders_vc_idx').on(t.vibecoderId, t.scheduledFor) }),
 );
 
+// One rolling Telegram message per (vibecoder, calendar day). Every time
+// a wizard saves new data, we re-render the card and edit this message in
+// place — so a manager sees the whole day for one person in a single,
+// growing post instead of hunting across topics or scrolling many DMs.
+export const dailyCards = pgTable(
+  'daily_cards',
+  {
+    id: serial('id').primaryKey(),
+    vibecoderId: integer('vibecoder_id').notNull().references(() => vibecoders.id, { onDelete: 'cascade' }),
+    cardDate: date('card_date').notNull(),
+    chatId: bigint('chat_id', { mode: 'bigint' }).notNull(),
+    messageId: bigint('message_id', { mode: 'bigint' }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    uniqDay: uniqueIndex('daily_cards_vc_date_unique').on(t.vibecoderId, t.cardDate),
+    byDate: index('daily_cards_date_idx').on(t.cardDate),
+  }),
+);
+
 export const notionSyncQueue = pgTable(
   'notion_sync_queue',
   {

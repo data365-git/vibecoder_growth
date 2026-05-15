@@ -9,7 +9,6 @@
 import { and, eq, gte, lte } from 'drizzle-orm';
 import { db, pool } from '../src/db/client.js';
 import * as s from '../src/db/schema/growth.js';
-import { syncNow } from '../src/notion/sync.js';
 import { persistAutoScore } from '../src/scoring/compute.js';
 
 type Persona = 'star' | 'solid' | 'borderline' | 'struggling' | 'lead';
@@ -86,7 +85,7 @@ const COMPLETED = [
 const IN_PROGRESS = [
   'Refactor auth middleware (JWT → SSO)',
   'Оптимизация фронта /reports — virtual list',
-  'Notion sync queue: backoff + dedup',
+  'Очередь задач: backoff + dedup',
   'Спайк по WebSocket для realtime status grid',
 ];
 const BLOCKERS = [
@@ -174,12 +173,12 @@ const LEARNING_ACTION = [
 
 const EXPLAIN_TECH = [
   'JWT-токены подписаны HMAC-SHA256 секретом сервера, expires_at в payload.',
-  'Notion sync queue: exponential backoff с jitter, max 1h между попытками.',
+  'Очередь повторов webhook: exponential backoff с jitter, max 1h между попытками.',
   'Drizzle migrations: SQL файлы версионируются, hash в _journal.json гарантирует целостность.',
 ];
 const EXPLAIN_SIMPLE = [
   'Это как штамп на пропуске — сервер ставит его при входе, потом проверяет, что не подделан.',
-  'Если Notion упал, мы складываем заявки в очередь и пробуем снова — сначала быстро, потом всё реже.',
+  'Если внешний сервис упал, мы складываем заявки в очередь и пробуем снова — сначала быстро, потом всё реже.',
   'Это как нумерованный список изменений в БД — нельзя пропустить или поменять местами.',
 ];
 const EXPLAIN_METAPHOR = [
@@ -325,7 +324,6 @@ async function seedDesignRefs(rng: () => number, vc: typeof s.vibecoders.$inferS
         createdAt,
       })
       .returning();
-    if (row) await syncNow('design_refs', row as any);
   }
 }
 
@@ -348,7 +346,6 @@ async function seedBusinessNotes(rng: () => number, vc: typeof s.vibecoders.$inf
         createdAt,
       })
       .returning();
-    if (row) await syncNow('business_notes', row as any);
   }
 }
 
@@ -371,7 +368,6 @@ async function seedLearningNotes(rng: () => number, vc: typeof s.vibecoders.$inf
         createdAt,
       })
       .returning();
-    if (row) await syncNow('learning_notes', row as any);
   }
 }
 
@@ -392,7 +388,6 @@ async function seedExplainNotes(rng: () => number, vc: typeof s.vibecoders.$infe
         createdAt,
       })
       .returning();
-    if (row) await syncNow('explain_notes', row as any);
   }
 }
 
@@ -412,7 +407,6 @@ async function seedBookReflection(rng: () => number, vc: typeof s.vibecoders.$in
     })
     .onConflictDoNothing()
     .returning();
-  if (row) await syncNow('book_reflections', row as any);
 }
 
 async function seedBriefsAndDeliveries(rng: () => number, vc: typeof s.vibecoders.$inferSelect, profile: ProfileWeights, monthStart: Date, monthEnd: Date) {
@@ -487,7 +481,6 @@ async function seedWeeklyReview(rng: () => number, vc: typeof s.vibecoders.$infe
     })
     .onConflictDoNothing()
     .returning();
-  if (row) await syncNow('weekly_growth_reviews', row as any);
 }
 
 // ------- Main -------

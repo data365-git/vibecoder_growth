@@ -1,31 +1,30 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 import {
   LayoutGrid,
   CalendarDays,
   Circle,
   Users,
-  LineChart,
-  Trophy,
-  FileText,
   Settings as SettingsIcon,
-  LogOut,
   ChevronLeft,
+  HelpCircle,
 } from 'lucide-react';
-import { clearToken } from '../api/client';
 
+// Sidebar is intentionally short: only pages that have live data flowing
+// today (discipline-only mode). Weekly review, Monthly scores, and Growth
+// logs depend on the 5 manual-pillar wizards which are muted — their
+// routes still exist at /weekly /scores /logs for future revival, just
+// hidden from nav. Logout lives on the Settings page now, not in the
+// sidebar corner — it deserves a real Account section.
 const links = [
   { to: '/daily', label: 'Daily', icon: LayoutGrid },
   { to: '/standup', label: 'Stand-up', icon: CalendarDays },
-  { to: '/status', label: 'Status (offline)', icon: Circle },
+  { to: '/status', label: 'Status', icon: Circle },
   { to: '/team', label: 'Team', icon: Users },
-  { to: '/weekly', label: 'Weekly review', icon: LineChart },
-  { to: '/scores', label: 'Monthly scores', icon: Trophy },
-  { to: '/logs/design', label: 'Growth logs', icon: FileText },
   { to: '/settings', label: 'Settings', icon: SettingsIcon },
+  { to: '/help', label: 'How it works', icon: HelpCircle },
 ];
 
 export default function AppLayout() {
-  const navigate = useNavigate();
   return (
     <div className="min-h-screen flex bg-background">
       <aside className="w-60 shrink-0 border-r border-border/60 bg-card flex flex-col">
@@ -46,7 +45,7 @@ export default function AppLayout() {
           </button>
         </div>
 
-        <nav className="flex-1 px-3 space-y-1">
+        <nav className="flex-1 px-3 pb-5 space-y-1">
           {links.map((l) => {
             const Icon = l.icon;
             return (
@@ -71,19 +70,6 @@ export default function AppLayout() {
             );
           })}
         </nav>
-
-        <div className="px-3 pb-5">
-          <button
-            onClick={() => {
-              clearToken();
-              navigate('/login');
-            }}
-            className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition"
-          >
-            <LogOut className="h-[18px] w-[18px]" />
-            <span>Logout</span>
-          </button>
-        </div>
       </aside>
 
       <main className="flex-1 min-w-0 overflow-y-auto">

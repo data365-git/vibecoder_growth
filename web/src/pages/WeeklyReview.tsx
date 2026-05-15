@@ -317,7 +317,7 @@ function ReviewPanel({
           disabled={save.isPending}
           className="rounded bg-primary text-primary-foreground px-3 py-2 text-sm"
         >
-          Mark reviewed → sync to Notion
+          Mark reviewed
         </button>
       </div>
     </div>

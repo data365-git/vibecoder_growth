@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CheckCircle2 } from 'lucide-react';
 import { api } from '../api/client';
 
 const TYPES = [
@@ -22,7 +21,7 @@ export default function Logs() {
     <div className="space-y-6">
       <div>
         <h1 className="text-[26px] leading-tight font-bold tracking-tight">Growth logs</h1>
-        <p className="text-sm text-muted-foreground mt-1">All entries from the bot, mirrored to Notion.</p>
+        <p className="text-sm text-muted-foreground mt-1">All entries from the bot.</p>
       </div>
 
       <div className="flex gap-1 card-soft p-1 w-fit">
@@ -46,11 +45,6 @@ export default function Logs() {
               <span className="chip-primary">vc #{r.vibecoderId}</span>
               <span className="text-xs text-muted-foreground">{new Date(r.createdAt).toLocaleString()}</span>
             </div>
-            {r.notionPageId && (
-              <div className="inline-flex items-center gap-1 text-xs text-success">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Mirrored to Notion
-              </div>
-            )}
             <pre className="whitespace-pre-wrap text-xs bg-muted/40 rounded-lg p-3 max-h-72 overflow-auto">
 {JSON.stringify(stripNoise(r), null, 2)}
             </pre>

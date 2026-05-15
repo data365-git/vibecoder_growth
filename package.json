@@ -2,7 +2,7 @@
   "name": "vibecoder-growth",
   "private": true,
   "version": "0.1.0",
-  "description": "Vibecoder Growth & Performance System — Telegram bot + Notion mirror + admin UI",
+  "description": "Vibecoder Growth & Performance System — Telegram bot + admin UI",
   "scripts": {
     "dev:server": "pnpm --filter @vg/server dev",
     "dev:web": "pnpm --filter @vg/web dev",
@@ -10,7 +10,6 @@
     "start": "pnpm --filter @vg/server start",
     "db:generate": "pnpm --filter @vg/server db:generate",
     "db:migrate": "pnpm --filter @vg/server db:migrate",
-    "notion:setup": "pnpm --filter @vg/server notion:setup",
     "seed": "pnpm --filter @vg/server seed"
   },
   "engines": {

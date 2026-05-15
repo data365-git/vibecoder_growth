@@ -10,6 +10,7 @@ import WeeklyReview from './pages/WeeklyReview';
 import MonthlyScores from './pages/MonthlyScores';
 import Logs from './pages/Logs';
 import Settings from './pages/Settings';
+import Help from './pages/Help';
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   if (!getToken()) return <Navigate to="/login" replace />;
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="scores/:yyyymm?" element={<MonthlyScores />} />
         <Route path="logs/:type?" element={<Logs />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="help" element={<Help />} />
       </Route>
     </Routes>
   );

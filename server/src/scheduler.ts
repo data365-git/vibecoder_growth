@@ -1,10 +1,9 @@
 import cron from 'node-cron';
 import type { Bot } from 'grammy';
-import { eq, and, isNull, gte, sql } from 'drizzle-orm';
+import { eq, and, gte } from 'drizzle-orm';
 import { db } from './db/client.js';
 import * as s from './db/schema/growth.js';
 import { env } from './env.js';
-import { drainSyncQueue } from './notion/sync.js';
 import { persistAutoScore } from './scoring/compute.js';
 import type { BotContext } from './bot/types.js';
 
@@ -138,14 +137,18 @@ export function startScheduler(bot: Bot<BotContext>) {
             .onConflictDoNothing();
         }
       }
-      // Summary to reporting group
-      if (env.GROWTH_REPORTING_CHAT_ID) {
+      // Daily totals message — goes to the same group that holds the
+      // rolling per-person cards, so the manager sees today's bottom line
+      // in one place. Legacy GROWTH_REPORTING_CHAT_ID still works as a
+      // fallback for installs that haven't migrated yet.
+      const summaryChat = env.GROWTH_GROUP_CHAT_ID ?? env.GROWTH_REPORTING_CHAT_ID;
+      if (summaryChat) {
         const onTime = [...submitted.values()].filter((r) => r.status === 'on_time').length;
         const late = [...submitted.values()].filter((r) => r.status === 'late').length;
         const missing = vcs.length - submitted.size;
         const summary = `📊 Daily summary · ${ymd}\nOn-time: ${onTime}\nLate: ${late}\nMissed: ${missing}\nИтого активных: ${vcs.length}`;
         try {
-          await bot.api.sendMessage(env.GROWTH_REPORTING_CHAT_ID, summary);
+          await bot.api.sendMessage(summaryChat, summary);
         } catch (e) {
           /* noop */
         }
@@ -154,16 +157,13 @@ export function startScheduler(bot: Bot<BotContext>) {
     { timezone: TZ },
   );
 
-  // Every 30 min Mon-Sat 09-18 — if offline mode active and ≥90 min since last status, prompt
+  // Every 2 hours Mon-Sat 10/12/14/16 (Tashkent) — nudge anyone who
+  // hasn't sent a /status in the last 90 minutes during the work day.
+  // The offline-mode gate is gone: the bot is the source of truth for
+  // what's happening, so we want a steady cadence regardless.
   cron.schedule(
-    '*/30 9-18 * * 1-6',
+    '0 10,12,14,16 * * 1-6',
     async () => {
-      const [active] = await db
-        .select()
-        .from(s.offlineModeLog)
-        .where(isNull(s.offlineModeLog.endedAt))
-        .limit(1);
-      if (!active) return;
       const since = new Date(Date.now() - 90 * 60_000);
       const vcs = await activeVibecoders();
       for (const vc of vcs) {
@@ -173,7 +173,47 @@ export function startScheduler(bot: Bot<BotContext>) {
           .where(and(eq(s.statusUpdates.vibecoderId, vc.id), gte(s.statusUpdates.sentAt, since)))
           .limit(1);
         if (recent.length > 0) continue;
-        await dmIf(bot, vc, '⚡ Offline mode активен. /status — 5 коротких вопросов.', 'status_offline');
+        await dmIf(bot, vc, '⚡ /status — 5 коротких вопросов. Я опубликую в топик Status.', 'status_offline');
+      }
+    },
+    { timezone: TZ },
+  );
+
+  // 10:00 / 14:00 / 18:00 Mon-Sat — lead summary DM. Same shape as the
+  // /today command; pushed automatically so the lead doesn't have to ask.
+  cron.schedule(
+    '0 10,14,18 * * 1-6',
+    async () => {
+      const ymd = todayYmd();
+      const vcs = await activeVibecoders();
+      const reports = await db.select().from(s.dailyReports).where(eq(s.dailyReports.reportDate, ymd));
+      let onTime = 0, late = 0, pending = 0;
+      const missingNames: string[] = [];
+      for (const vc of vcs) {
+        const r = reports.find((x) => x.vibecoderId === vc.id);
+        if (!r || !r.submittedAt) {
+          pending++;
+          missingNames.push(vc.fullNameRu);
+        } else if (r.status === 'on_time') onTime++;
+        else if (r.status === 'late') late++;
+      }
+      const text = [
+        `📅 ${ymd}`,
+        `On-time: ${onTime}`,
+        `Late: ${late}`,
+        `Pending: ${pending} / ${vcs.length}`,
+        pending > 0 ? `Missing: ${missingNames.join(', ')}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n');
+      const managers = await db.select().from(s.growthManagers);
+      for (const m of managers) {
+        if (!m.tgUserId) continue;
+        try {
+          await bot.api.sendMessage(Number(m.tgUserId), text);
+        } catch {
+          /* noop */
+        }
       }
     },
     { timezone: TZ },
@@ -185,6 +225,7 @@ export function startScheduler(bot: Bot<BotContext>) {
     async () => {
       const managers = await db.select().from(s.growthManagers);
       for (const m of managers) {
+        if (!m.tgUserId) continue;
         try {
           await bot.api.sendMessage(
             Number(m.tgUserId),
@@ -222,6 +263,7 @@ export function startScheduler(bot: Bot<BotContext>) {
       // Notify managers
       const managers = await db.select().from(s.growthManagers);
       for (const m of managers) {
+        if (!m.tgUserId) continue;
         try {
           await bot.api.sendMessage(
             Number(m.tgUserId),
@@ -234,15 +276,6 @@ export function startScheduler(bot: Bot<BotContext>) {
     },
     { timezone: TZ },
   );
-
-  // Every 5 minutes — drain Notion sync queue
-  cron.schedule('*/5 * * * *', async () => {
-    try {
-      await drainSyncQueue(25);
-    } catch (err) {
-      console.error('Notion drain failed:', err);
-    }
-  });
 
   console.log(`[scheduler] all jobs registered (TZ=${TZ})`);
 }

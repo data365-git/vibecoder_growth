@@ -3,7 +3,6 @@ import { db } from '../../db/client.js';
 import * as s from '../../db/schema/growth.js';
 import { t } from '../i18n.ru.js';
 import { askUrl, askText, askLines } from './helpers.js';
-import { syncNow } from '../../notion/sync.js';
 import type { BotContext } from '../types.js';
 
 const SOURCE_TYPES = ['podcast', 'video', 'interview', 'article', 'other'] as const;
@@ -33,7 +32,6 @@ export async function businessConversation(conversation: Conversation<BotContext
       })
       .returning();
     await ctx.reply(t.done);
-    if (row) await syncNow('business_notes', row as any);
   } catch (e) {
     if (e instanceof Error && e.message === '__cancelled__') {
       await ctx.reply(t.cancel);

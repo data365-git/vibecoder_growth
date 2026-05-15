@@ -5,7 +5,6 @@ import * as s from '../../db/schema/growth.js';
 import { env } from '../../env.js';
 import { t } from '../i18n.ru.js';
 import { askText, askLines } from './helpers.js';
-import { syncNow } from '../../notion/sync.js';
 import type { BotContext } from '../types.js';
 
 function currentMonthYear(): string {
@@ -45,7 +44,6 @@ export async function bookConversation(conversation: Conversation<BotContext, Bo
       })
       .returning();
     await ctx.reply(t.done);
-    if (row) await syncNow('book_reflections', row as any);
   } catch (e) {
     if (e instanceof Error && e.message === '__cancelled__') {
       await ctx.reply(t.cancel);

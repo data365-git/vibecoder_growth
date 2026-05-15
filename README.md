@@ -6,10 +6,9 @@ See plan: `C:\Users\User\.claude\plans\longer-refactored-corbato.md`
 
 ## Stack
 
-- **server/**: TypeScript + Hono + Drizzle ORM + grammy (Telegram bot) + node-cron + @notionhq/client
+- **server/**: TypeScript + Hono + Drizzle ORM + grammy (Telegram bot) + node-cron
 - **web/**: React 18 + Vite + Tailwind + shadcn/ui (PM admin UI)
 - **db**: PostgreSQL (source of truth)
-- **Notion**: one-way mirror of growth log entries (6 databases)
 
 ## Setup
 
@@ -18,7 +17,6 @@ pnpm install
 cp .env.example .env          # fill values
 pnpm db:generate              # generate Drizzle migration
 pnpm db:migrate               # apply migration
-pnpm notion:setup             # create 6 Notion databases (once)
 pnpm seed                     # seed admin + sample vibecoders for dev
 pnpm dev:server               # start API + bot (polling)
 pnpm dev:web                  # start admin UI
@@ -29,7 +27,7 @@ pnpm dev:web                  # start admin UI
 ```bash
 railway init
 railway link
-railway variables set GROWTH_BOT_TOKEN=... NOTION_TOKEN=... NOTION_PARENT_PAGE_ID=...
+railway variables set GROWTH_BOT_TOKEN=...
 railway up
 railway logs
 ```
