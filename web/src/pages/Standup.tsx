@@ -43,6 +43,7 @@ export default function Standup() {
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
+          aria-label="Дата stand-up"
           className="rounded-xl border border-border/70 bg-card px-3.5 py-2.5 text-sm"
         />
       </div>
@@ -63,7 +64,10 @@ export default function Standup() {
             </div>
           );
         })}
-        {(list.data ?? []).length === 0 && (
+        {list.isLoading && (
+          <div className="text-sm text-muted-foreground">Загрузка…</div>
+        )}
+        {!list.isLoading && (list.data ?? []).length === 0 && (
           <div className="text-sm text-muted-foreground">Stand-up за этот день никто не отправлял.</div>
         )}
       </div>

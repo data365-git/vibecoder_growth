@@ -29,9 +29,12 @@ interface Standup {
   standupDate: string;
 }
 
+const TZ_OFFSET_MS = 5 * 60 * 60 * 1000;
+
 function formatTime(iso: string | null): string {
   if (!iso) return '—';
-  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const d = new Date(iso);
+  return new Date(d.getTime() + TZ_OFFSET_MS).toISOString().slice(11, 16);
 }
 
 function formatDate(ymd: string): string {
@@ -118,7 +121,7 @@ export default function DailyOverview() {
         <Counter label="Pending" value={view.counts.pending} icon={<Clock className="h-4 w-4 text-muted-foreground" />} tint="bg-muted" />
       </div>
 
-      <div className="card-soft overflow-hidden">
+      <div className="card-soft overflow-hidden overflow-x-auto">
         <div className="p-4 flex items-center justify-between gap-3 border-b border-border/40">
           <div className="text-sm text-muted-foreground">
             {view.counts.total} активных · {formatDate(date)}
@@ -129,6 +132,7 @@ export default function DailyOverview() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Поиск…"
+              aria-label="Поиск по команде"
               className="rounded-lg border border-border/70 bg-card pl-9 pr-3 py-2 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
             />
           </div>
@@ -156,9 +160,9 @@ export default function DailyOverview() {
                 </td>
                 <td className="px-2 py-3">
                   {standupDone ? (
-                    <CheckCircle2 className="h-4 w-4 text-success" />
+                    <CheckCircle2 className="h-4 w-4 text-success" title="Stand-up сдан" />
                   ) : (
-                    <XCircle className="h-4 w-4 text-muted-foreground/60" />
+                    <XCircle className="h-4 w-4 text-muted-foreground/60" title="Stand-up не сдан" />
                   )}
                 </td>
                 <td className="px-2 py-3"><StatusPill status={status} /></td>

@@ -5,7 +5,6 @@ import {
   Circle,
   Users,
   Settings as SettingsIcon,
-  ChevronLeft,
   HelpCircle,
 } from 'lucide-react';
 
@@ -37,12 +36,6 @@ export default function AppLayout() {
               data365 <span className="text-muted-foreground">·</span> Growth
             </div>
           </div>
-          <button
-            className="h-7 w-7 rounded-full border border-border/70 flex items-center justify-center text-muted-foreground hover:bg-muted transition"
-            title="Collapse"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </button>
         </div>
 
         <nav className="flex-1 px-3 pb-5 space-y-1">

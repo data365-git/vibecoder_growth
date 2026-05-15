@@ -71,7 +71,7 @@ export default function Team() {
         </button>
       </div>
 
-      <div className="card-soft overflow-hidden">
+      <div className="card-soft overflow-hidden overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-xs text-muted-foreground border-b border-border/60 bg-muted/40">

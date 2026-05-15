@@ -45,8 +45,9 @@ export default function Login() {
 
         <div className="space-y-3 pt-2">
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Email</label>
+            <label htmlFor="login-email" className="text-xs font-medium text-muted-foreground">Email</label>
             <input
+              id="login-email"
               type="email"
               required
               value={email}
@@ -56,8 +57,9 @@ export default function Login() {
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Пароль</label>
+            <label htmlFor="login-password" className="text-xs font-medium text-muted-foreground">Пароль</label>
             <input
+              id="login-password"
               type="password"
               required
               value={password}
@@ -74,7 +76,7 @@ export default function Login() {
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-xl bg-primary text-white px-3 py-2.5 text-sm font-semibold disabled:opacity-50 hover:bg-primary/90 transition shadow-sm"
+          className="w-full rounded-xl bg-primary text-white px-3 py-2.5 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition shadow-sm"
         >
           {busy ? 'Вход…' : 'Войти'}
         </button>

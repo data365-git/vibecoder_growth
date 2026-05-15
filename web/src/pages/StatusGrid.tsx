@@ -4,6 +4,14 @@ import { CheckCircle2, AlertTriangle } from 'lucide-react';
 import { api } from '../api/client';
 import { Avatar } from '../components/Avatar';
 
+const TZ_OFFSET_MS = 5 * 60 * 60 * 1000;
+
+function formatSentAt(iso: string): string {
+  const d = new Date(iso);
+  const s = new Date(d.getTime() + TZ_OFFSET_MS).toISOString();
+  return `${s.slice(0, 10)} ${s.slice(11, 16)}`;
+}
+
 interface Status {
   id: number;
   vibecoderId: number;
@@ -50,7 +58,7 @@ export default function StatusGrid() {
                   <span className="font-medium truncate">{name}</span>
                 </div>
                 <span className="text-xs text-muted-foreground shrink-0">
-                  {new Date(s.sentAt).toLocaleString()}
+                  {formatSentAt(s.sentAt)}
                 </span>
               </div>
               <div className="font-semibold">{s.currentTask}</div>
@@ -68,7 +76,10 @@ export default function StatusGrid() {
             </div>
           );
         })}
-        {(list.data ?? []).length === 0 && (
+        {list.isLoading && (
+          <div className="text-sm text-muted-foreground card-soft p-6 md:col-span-2">Загрузка…</div>
+        )}
+        {!list.isLoading && (list.data ?? []).length === 0 && (
           <div className="text-sm text-muted-foreground card-soft p-6 md:col-span-2">
             За последние 12 часов status updates не было.
           </div>
