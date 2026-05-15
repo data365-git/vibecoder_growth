@@ -4,10 +4,16 @@ import { db } from '../../db/client.js';
 import * as s from '../../db/schema/growth.js';
 import { t } from '../i18n.ru.js';
 import { askText, askOptional } from './helpers.js';
+import { upsertDailyCard } from '../daily-card.js';
+import { env } from '../../env.js';
 import type { BotContext } from '../types.js';
 
 export async function deliveryConversation(conversation: Conversation<BotContext, BotContext>, ctx: BotContext, briefId: number) {
-  const vibecoderId = ctx.vibecoderId!;
+  const vibecoderId = await conversation.external((outerCtx) => outerCtx.vibecoderId);
+  if (!vibecoderId) {
+    await ctx.reply(t.notLinked);
+    return;
+  }
   const [brief] = await db
     .select()
     .from(s.taskOwnershipBriefs)
@@ -50,6 +56,9 @@ export async function deliveryConversation(conversation: Conversation<BotContext
         .where(eq(s.taskOwnershipBriefs.id, briefId));
     });
     await ctx.reply(`${t.done} ${onTime ? '✅ В срок.' : '⚠️ После дедлайна.'}`);
+
+    const today = new Date(new Date().toLocaleString('en-US', { timeZone: env.TZ })).toISOString().slice(0, 10);
+    await upsertDailyCard(ctx.api, vibecoderId, today);
   } catch (e) {
     if (e instanceof Error && e.message === '__cancelled__') {
       await ctx.reply(t.cancel);

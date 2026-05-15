@@ -5,6 +5,7 @@ import * as s from '../../db/schema/growth.js';
 import { env } from '../../env.js';
 import { t } from '../i18n.ru.js';
 import { askText, askOptional } from './helpers.js';
+import { upsertDailyCard } from '../daily-card.js';
 import type { BotContext } from '../types.js';
 
 function todayYmd(): string {
@@ -12,7 +13,11 @@ function todayYmd(): string {
 }
 
 export async function standupConversation(conversation: Conversation<BotContext, BotContext>, ctx: BotContext) {
-  const vibecoderId = ctx.vibecoderId!;
+  const vibecoderId = await conversation.external((outerCtx) => outerCtx.vibecoderId);
+  if (!vibecoderId) {
+    await ctx.reply(t.notLinked);
+    return;
+  }
   const today = todayYmd();
   const existing = await db
     .select()
@@ -39,6 +44,8 @@ export async function standupConversation(conversation: Conversation<BotContext,
       endOfDayDeliverable,
     });
     await ctx.reply(t.done);
+
+    await upsertDailyCard(ctx.api, vibecoderId, today);
   } catch (e) {
     if (e instanceof Error && e.message === '__cancelled__') {
       await ctx.reply(t.cancel);

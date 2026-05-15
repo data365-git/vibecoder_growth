@@ -5,6 +5,7 @@ import * as s from '../../db/schema/growth.js';
 import { env } from '../../env.js';
 import { t } from '../i18n.ru.js';
 import { askText, askOptional, askYesNoPartial, countWords } from './helpers.js';
+import { upsertDailyCard } from '../daily-card.js';
 import type { BotContext } from '../types.js';
 
 function todayYmd(): string {
@@ -19,7 +20,11 @@ function isPastCutoff(): boolean {
 }
 
 export async function reportConversation(conversation: Conversation<BotContext, BotContext>, ctx: BotContext) {
-  const vibecoderId = ctx.vibecoderId!;
+  const vibecoderId = await conversation.external((outerCtx) => outerCtx.vibecoderId);
+  if (!vibecoderId) {
+    await ctx.reply(t.notLinked);
+    return;
+  }
   const today = todayYmd();
 
   const existing = await db
@@ -48,7 +53,7 @@ export async function reportConversation(conversation: Conversation<BotContext, 
     const hasProof = proofLinks.length > 0;
     const wc = countWords([didToday, completed ?? '', inProgress ?? '', blockers ?? '', plansTomorrow].join(' '));
 
-    const [saved] = await db
+    await db
       .insert(s.dailyReports)
       .values({
         vibecoderId,
@@ -85,35 +90,7 @@ export async function reportConversation(conversation: Conversation<BotContext, 
 
     await ctx.reply(late ? t.reportLate : t.done);
 
-    // Forward to reporting group
-    if (env.GROWTH_REPORTING_CHAT_ID) {
-      const [vc] = await db.select().from(s.vibecoders).where(eq(s.vibecoders.id, vibecoderId));
-      const header = `📋 Daily report · ${vc?.fullNameRu ?? `vc#${vibecoderId}`} · ${today}${late ? ' · LATE' : ''}`;
-      const body = [
-        `*Сделал:* ${didToday}`,
-        `*Завершил:* ${completed ?? '-'}`,
-        `*В процессе:* ${inProgress ?? '-'}`,
-        `*Blockers:* ${blockers ?? 'нет'}`,
-        `*Завтра:* ${plansTomorrow}`,
-        proofLinks.length > 0 ? `*Proof:* ${proofLinks.join(' · ')}` : '',
-        `*Обещание выполнено:* ${promise}`,
-      ]
-        .filter(Boolean)
-        .join('\n');
-      try {
-        const sent = await ctx.api.sendMessage(env.GROWTH_REPORTING_CHAT_ID, `${header}\n\n${body}`, {
-          parse_mode: 'Markdown',
-        });
-        if (saved?.id) {
-          await db
-            .update(s.dailyReports)
-            .set({ forwardedMessageId: BigInt(sent.message_id) })
-            .where(eq(s.dailyReports.id, saved.id));
-        }
-      } catch (err) {
-        console.error('Failed to forward report:', err);
-      }
-    }
+    await upsertDailyCard(ctx.api, vibecoderId, today);
   } catch (e) {
     if (e instanceof Error && e.message === '__cancelled__') {
       await ctx.reply(t.cancel);

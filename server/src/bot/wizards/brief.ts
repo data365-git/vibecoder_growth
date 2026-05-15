@@ -4,6 +4,7 @@ import * as s from '../../db/schema/growth.js';
 import { env } from '../../env.js';
 import { t } from '../i18n.ru.js';
 import { askText, askLines, askOptional } from './helpers.js';
+import { upsertDailyCard } from '../daily-card.js';
 import type { BotContext } from '../types.js';
 
 function parseDeadline(raw: string): Date | null {
@@ -32,7 +33,11 @@ function parseDeadline(raw: string): Date | null {
 }
 
 export async function briefConversation(conversation: Conversation<BotContext, BotContext>, ctx: BotContext) {
-  const vibecoderId = ctx.vibecoderId!;
+  const vibecoderId = await conversation.external((outerCtx) => outerCtx.vibecoderId);
+  if (!vibecoderId) {
+    await ctx.reply(t.notLinked);
+    return;
+  }
   try {
     const taskTitle = await askText(conversation, ctx, t.briefStart);
     const understanding = await askText(conversation, ctx, t.briefQ2);
@@ -62,6 +67,11 @@ export async function briefConversation(conversation: Conversation<BotContext, B
       })
       .returning();
     await ctx.reply(`${t.done} Brief id: #${row?.id ?? '?'}\nКогда задача будет готова, отправь: /delivery ${row?.id ?? ''}`);
+
+    if (row?.id) {
+      const today = new Date(new Date().toLocaleString('en-US', { timeZone: env.TZ })).toISOString().slice(0, 10);
+      await upsertDailyCard(ctx.api, vibecoderId, today);
+    }
   } catch (e) {
     if (e instanceof Error && e.message === '__cancelled__') {
       await ctx.reply(t.cancel);

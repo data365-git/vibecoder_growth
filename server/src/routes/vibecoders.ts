@@ -8,9 +8,21 @@ import { requireAdmin } from './_auth-mw.js';
 export const vibecoderRoutes = new Hono();
 vibecoderRoutes.use('*', requireAdmin);
 
+// bigint columns (tgUserId, baseSalaryUzs, bonusBaselineUzs) can't be
+// passed to JSON.stringify directly — convert them on every response.
+function serializeVibecoder<T extends typeof s.vibecoders.$inferSelect | undefined>(r: T) {
+  if (!r) return r;
+  return {
+    ...r,
+    tgUserId: r.tgUserId ? String(r.tgUserId) : null,
+    baseSalaryUzs: Number(r.baseSalaryUzs),
+    bonusBaselineUzs: Number(r.bonusBaselineUzs),
+  };
+}
+
 vibecoderRoutes.get('/', async (c) => {
   const rows = await db.select().from(s.vibecoders).orderBy(desc(s.vibecoders.active), s.vibecoders.fullNameRu);
-  return c.json(rows.map((r) => ({ ...r, tgUserId: r.tgUserId ? String(r.tgUserId) : null, baseSalaryUzs: Number(r.baseSalaryUzs), bonusBaselineUzs: Number(r.bonusBaselineUzs) })));
+  return c.json(rows.map(serializeVibecoder));
 });
 
 const upsertSchema = z.object({
@@ -18,7 +30,9 @@ const upsertSchema = z.object({
   tgUsername: z.string().min(1),
   fullNameRu: z.string().min(1),
   role: z.string().default('vibecoder'),
-  startDate: z.string().optional(),
+  // Nullable in the DB; the form GETs the row (with `null`) and PUTs it
+  // back as-is, so we must accept null in addition to a date string.
+  startDate: z.string().nullable().optional(),
   baseSalaryUzs: z.number().int().nonnegative().default(0),
   bonusBaselineUzs: z.number().int().nonnegative().default(0),
   timezone: z.string().default('Asia/Tashkent'),
@@ -45,7 +59,7 @@ vibecoderRoutes.post('/', async (c) => {
       })
       .where(eq(s.vibecoders.id, d.id))
       .returning();
-    return c.json(updated);
+    return c.json(serializeVibecoder(updated));
   }
   const [created] = await db
     .insert(s.vibecoders)
@@ -60,12 +74,18 @@ vibecoderRoutes.post('/', async (c) => {
       active: d.active,
     })
     .returning();
-  return c.json(created, 201);
+  return c.json(serializeVibecoder(created), 201);
 });
 
 vibecoderRoutes.patch('/:id/active', async (c) => {
   const id = Number(c.req.param('id'));
   const body = await c.req.json().catch(() => ({ active: false }));
   const [row] = await db.update(s.vibecoders).set({ active: Boolean(body.active) }).where(eq(s.vibecoders.id, id)).returning();
-  return c.json(row);
+  return c.json(serializeVibecoder(row));
+});
+
+vibecoderRoutes.delete('/:id', async (c) => {
+  const id = Number(c.req.param('id'));
+  await db.delete(s.vibecoders).where(eq(s.vibecoders.id, id));
+  return c.json({ ok: true });
 });

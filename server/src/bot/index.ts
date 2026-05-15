@@ -1,6 +1,6 @@
 import { Bot, session, GrammyError, HttpError } from 'grammy';
 import { conversations, createConversation } from '@grammyjs/conversations';
-import { eq, and, sql, isNull, gte, lte } from 'drizzle-orm';
+import { eq, and, sql, isNull } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import * as s from '../db/schema/growth.js';
 import { env } from '../env.js';
@@ -12,19 +12,32 @@ import { mainMenu, managerMenu } from './keyboards.js';
 import { reportConversation } from './wizards/report.js';
 import { standupConversation } from './wizards/standup.js';
 import { statusConversation } from './wizards/status.js';
-import { designConversation } from './wizards/design.js';
-import { businessConversation } from './wizards/business.js';
-import { learningConversation } from './wizards/learning.js';
-import { explainConversation } from './wizards/explain.js';
-import { bookConversation } from './wizards/book.js';
 import { briefConversation } from './wizards/brief.js';
 import { deliveryConversation } from './wizards/delivery.js';
 import { startOfflineMode, endOfflineMode } from './wizards/offline.js';
-import { computeScoreForMonth } from '../scoring/compute.js';
+
+// One-line descriptions shown in the Telegram client's command picker
+// (the menu that pops up when a user types "/"). Keep them short and
+// action-oriented so a new vibecoder can self-onboard without docs.
+const COMMAND_DESCRIPTIONS: Array<{ command: string; description: string }> = [
+  { command: 'standup', description: 'Утренний план — 5 вопросов' },
+  { command: 'status', description: 'Короткий статус — над чем работаешь сейчас' },
+  { command: 'report', description: 'Отчёт за день (до 18:00)' },
+  { command: 'brief', description: 'Взять задачу + self-deadline' },
+  { command: 'delivery', description: 'Закрыть brief (формат: /delivery <id>)' },
+  { command: 'cancel', description: 'Отменить текущий wizard' },
+  { command: 'help', description: 'Подсказка по командам' },
+];
 
 export function createBot(): Bot<BotContext> {
   if (!env.GROWTH_BOT_TOKEN) throw new Error('GROWTH_BOT_TOKEN not set');
   const bot = new Bot<BotContext>(env.GROWTH_BOT_TOKEN);
+
+  // Register command suggestions in Telegram's UI. Fire-and-forget — if
+  // Telegram is briefly unreachable it's not worth crashing startup over.
+  bot.api.setMyCommands(COMMAND_DESCRIPTIONS).catch((e) => {
+    console.warn('[bot] setMyCommands failed:', e);
+  });
 
   bot.use(
     session<SessionData, BotContext>({
@@ -32,34 +45,29 @@ export function createBot(): Bot<BotContext> {
       storage: new PgSessionStorage<SessionData>(),
     }),
   );
-  bot.use(conversations());
+  // resolveIdentity MUST run before conversations() so that during a
+  // conversation replay (when grammy re-runs a wizard function from the
+  // top after the bot restarted), ctx.vibecoderId is populated. If the
+  // order were reversed, replay would see ctx.vibecoderId === undefined
+  // and the wizard would either crash on a NOT NULL insert (pre-guard)
+  // or exit early on every replay (post-guard, still broken UX).
   bot.use(resolveIdentity);
+  bot.use(conversations());
 
-  // Register conversations
+  // Discipline-only conversations. The 5 manual-pillar wizards (design,
+  // business, learning, explain, book) stay in the codebase but are not
+  // registered — humans review those manually for now.
   bot.use(createConversation(reportConversation, 'report'));
   bot.use(createConversation(standupConversation, 'standup'));
   bot.use(createConversation(statusConversation, 'status'));
-  bot.use(createConversation(designConversation, 'design'));
-  bot.use(createConversation(businessConversation, 'business'));
-  bot.use(createConversation(learningConversation, 'learning'));
-  bot.use(createConversation(explainConversation, 'explain'));
-  bot.use(createConversation(bookConversation, 'book'));
   bot.use(createConversation(briefConversation, 'brief'));
-  bot.use(
-    createConversation(
-      (conv: any, ctx: BotContext) => deliveryConversation(conv, ctx, (ctx as any)._deliveryBriefId ?? 0),
-      'delivery',
-    ),
-  );
+  bot.use(createConversation(deliveryConversation, 'delivery'));
 
   // /start — onboarding / link by username if not linked.
-  // Looks up both vibecoders and growth_managers tables so the same Telegram
-  // user can play either role (or both — Saidumar is dual-role).
   bot.command('start', async (ctx) => {
     const username = ctx.from?.username?.toLowerCase();
     const tgId = ctx.from?.id;
 
-    // Auto-link manager row if we have a username match but no tg_user_id yet.
     if (username && tgId && !ctx.managerId) {
       const [mgr] = await db
         .select()
@@ -72,7 +80,6 @@ export function createBot(): Bot<BotContext> {
       }
     }
 
-    // Auto-link vibecoder row.
     if (username && tgId && !ctx.vibecoderId) {
       const [vc] = await db
         .select()
@@ -84,6 +91,10 @@ export function createBot(): Bot<BotContext> {
       }
     }
 
+    // resolveIdentity already attempted auto-link by username on this
+    // update, so if we still don't have a vibecoderId, the user simply
+    // isn't rostered yet. Echo back the @username the bot sees so the
+    // manager can match the Team page entry exactly.
     if (ctx.vibecoderId || ctx.isManager) {
       let name = '';
       if (ctx.vibecoderId) {
@@ -97,7 +108,7 @@ export function createBot(): Bot<BotContext> {
       return;
     }
 
-    await ctx.reply(t.notLinked);
+    await ctx.reply(t.notLinkedWithUsername(ctx.from?.username));
   });
 
   bot.command('help', async (ctx) => {
@@ -105,7 +116,7 @@ export function createBot(): Bot<BotContext> {
       const [vc] = await db.select().from(s.vibecoders).where(eq(s.vibecoders.id, ctx.vibecoderId));
       await ctx.reply(t.linked(vc?.fullNameRu ?? ''));
     } else {
-      await ctx.reply(t.notLinked);
+      await ctx.reply(t.notLinkedWithUsername(ctx.from?.username));
     }
   });
 
@@ -114,50 +125,31 @@ export function createBot(): Bot<BotContext> {
     await ctx.reply(t.cancel);
   });
 
-  // Vibecoder commands
+  // Vibecoder commands — discipline only.
+  // exitAll() before enter() guarantees a clean slate. Without it, a
+  // previously-paused conversation (e.g. a user who hit /standup while
+  // their vibecoder row wasn't linked) gets RESUMED with a replay-mode
+  // synthetic ctx — and the wizard's null-guard fires because middleware
+  // properties like ctx.vibecoderId don't survive replay.
   const enter = (name: string) => async (ctx: BotContext) => {
-    if (!ctx.vibecoderId) return ctx.reply(t.notLinked);
+    if (!ctx.vibecoderId) return ctx.reply(t.notLinkedWithUsername(ctx.from?.username));
+    await ctx.conversation.exitAll();
     await ctx.conversation.enter(name);
   };
   bot.command('report', enter('report'));
   bot.command('standup', enter('standup'));
   bot.command('status', enter('status'));
-  bot.command('design', enter('design'));
-  bot.command('business', enter('business'));
-  bot.command('learning', enter('learning'));
-  bot.command('explain', enter('explain'));
-  bot.command('book', enter('book'));
   bot.command('brief', enter('brief'));
 
   bot.command('delivery', async (ctx) => {
-    if (!ctx.vibecoderId) return ctx.reply(t.notLinked);
+    if (!ctx.vibecoderId) return ctx.reply(t.notLinkedWithUsername(ctx.from?.username));
     const arg = (ctx.match ?? '').toString().trim();
     const briefId = Number(arg);
     if (!Number.isFinite(briefId) || briefId <= 0) {
       return ctx.reply('Использование: /delivery <briefId>');
     }
-    (ctx as any)._deliveryBriefId = briefId;
-    await ctx.conversation.enter('delivery');
-  });
-
-  bot.command('myscore', async (ctx) => {
-    if (!ctx.vibecoderId) return ctx.reply(t.notLinked);
-    const now = new Date();
-    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const auto = await computeScoreForMonth(ctx.vibecoderId, ym);
-    const lines = [
-      `📊 Прогноз score за ${ym} (auto):`,
-      `Discipline & Reporting: ${auto.disciplineReporting} / 10`,
-      `Deadline & Ownership: ${auto.deadlineOwnership} / 25`,
-      `UX/UI Taste: ${auto.uxuiTaste} / 20`,
-      `Business Thinking: ${auto.businessThinking} / 20`,
-      `Professional Learning: ${auto.professionalLearning} / 15`,
-      `Simple Explanation: ${auto.simpleExplanation} / 10`,
-      `—`,
-      `Итого: ${auto.total} / 100`,
-      `Финальный score выставит PM в конце месяца.`,
-    ];
-    await ctx.reply(lines.join('\n'));
+    await ctx.conversation.exitAll();
+    await ctx.conversation.enter('delivery', briefId);
   });
 
   // Manager commands
@@ -179,54 +171,6 @@ export function createBot(): Bot<BotContext> {
     }
     await ctx.reply(
       `📅 ${ymd}\nOn-time: ${onTime}\nLate: ${late}\nPending/Missed: ${none + missed} of ${vcs.length}`,
-    );
-  });
-
-  bot.command('weekreview', async (ctx) => {
-    if (!ctx.isManager) return ctx.reply(t.noPermission);
-    await ctx.reply('Открой admin UI → /admin/growth/weekly чтобы подготовить weekly review.');
-  });
-
-  bot.command('lockmonth', async (ctx) => {
-    if (!ctx.isManager) return ctx.reply(t.noPermission);
-    const arg = (ctx.match ?? '').toString().trim();
-    if (!/^\d{4}-\d{2}$/.test(arg)) {
-      return ctx.reply('Использование: /lockmonth YYYY-MM (например /lockmonth 2026-05)');
-    }
-    const ym = arg;
-    const vcs = await db.select().from(s.vibecoders).where(eq(s.vibecoders.active, true));
-    let lockedCount = 0;
-    let alreadyLocked = 0;
-    let missing = 0;
-    for (const vc of vcs) {
-      await computeScoreForMonth(vc.id, ym); // ensures auto values are fresh
-      const [score] = await db
-        .select()
-        .from(s.monthlyScores)
-        .where(and(eq(s.monthlyScores.vibecoderId, vc.id), eq(s.monthlyScores.yearMonth, ym)));
-      if (!score) {
-        missing++;
-        continue;
-      }
-      if (score.lockedAt) {
-        alreadyLocked++;
-        continue;
-      }
-      await db
-        .update(s.monthlyScores)
-        .set({ lockedAt: new Date() })
-        .where(eq(s.monthlyScores.id, score.id));
-      lockedCount++;
-    }
-    await ctx.reply(
-      [
-        `🔒 Lock month ${ym}`,
-        `Locked: ${lockedCount}`,
-        `Already locked: ${alreadyLocked}`,
-        missing > 0 ? `No score row (skipped): ${missing}` : '',
-      ]
-        .filter(Boolean)
-        .join('\n'),
     );
   });
 
