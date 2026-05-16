@@ -1,23 +1,27 @@
-import { CalendarDays, Zap, FileText, FileSignature, PackageCheck, X, HelpCircle, Sun, Moon, ListChecks } from 'lucide-react';
+import { Zap, FileText, X, HelpCircle, Sun, Moon, ListChecks, PauseCircle } from 'lucide-react';
 
 type CmdRow = {
   cmd: string;
   who: 'vibecoder' | 'manager';
+  status?: 'paused';
   icon: React.ComponentType<{ className?: string }>;
   purpose: string;
 };
 
+// Active commands first, paused ones at the bottom with a clear tag so a
+// new manager doesn't go hunting for something that's currently off.
 const COMMANDS: CmdRow[] = [
-  { cmd: '/standup', who: 'vibecoder', icon: CalendarDays, purpose: 'Утренний план. 5 вопросов: что сделал вчера, что сделаешь сегодня, главный deadline, blocker, конкретный результат к концу дня.' },
-  { cmd: '/status', who: 'vibecoder', icon: Zap, purpose: 'Короткий статус в середине дня. Над чем работаешь сейчас, что успел с прошлого раза, blocker, в срок ли. Бот спросит сам 4 раза за день (10:00 / 12:00 / 14:00 / 16:00).' },
+  { cmd: '/status', who: 'vibecoder', icon: Zap, purpose: 'Короткий статус в середине дня. Над чем работаешь сейчас, что успел с прошлого раза, blocker, в срок ли. Бот спрашивает сам 4 раза за день (10:00 / 12:00 / 14:00 / 16:00).' },
   { cmd: '/report', who: 'vibecoder', icon: FileText, purpose: 'Daily report до 18:00. Что сделал, что в процессе, blocker, что завтра, proof-ссылки, выполнил ли утреннее обещание.' },
-  { cmd: '/brief', who: 'vibecoder', icon: FileSignature, purpose: 'Берёшь задачу — сразу фиксируешь: понимание, ожидаемый результат, шаги, self-deadline. Бот даст id брифа.' },
-  { cmd: '/delivery <id>', who: 'vibecoder', icon: PackageCheck, purpose: 'Закрываешь brief по id. Что сделано, как проверить, screens/video, edge cases. Автоматически отмечает «в срок / позже дедлайна».' },
   { cmd: '/cancel', who: 'vibecoder', icon: X, purpose: 'Отменить текущий wizard, если что-то пошло не так.' },
   { cmd: '/help', who: 'vibecoder', icon: HelpCircle, purpose: 'Короткая подсказка по командам.' },
-  { cmd: '/today', who: 'manager', icon: ListChecks, purpose: 'Сводка по команде за сегодня (on-time / late / pending). Бот сам присылает её в DM в 10:00, 14:00 и 18:00.' },
-  { cmd: '/offline <reason>', who: 'manager', icon: Moon, purpose: 'Сообщить, что менеджер не на связи (просто метка в БД — на расписание /status это больше не влияет).' },
+  { cmd: '/today', who: 'manager', icon: ListChecks, purpose: 'Сводка по команде за сегодня (vaqtida / kechikkan / kutilmoqda). Бот сам присылает её в DM в 10:00, 14:00 и 18:00.' },
+  { cmd: '/offline <reason>', who: 'manager', icon: Moon, purpose: 'Сообщить, что менеджер не на связи — просто метка в БД, на расписание это не влияет.' },
   { cmd: '/online', who: 'manager', icon: Sun, purpose: 'Снять метку offline.' },
+  { cmd: '/standup', who: 'vibecoder', status: 'paused', icon: PauseCircle, purpose: 'Утренний план (5 вопросов). На паузе с 2026-05-16 — фокус на /status + /report. Код и схема сохранены, можно включить обратно.' },
+  { cmd: '/brief', who: 'vibecoder', status: 'paused', icon: PauseCircle, purpose: 'Взять задачу с self-deadline. На паузе с 2026-05-16.' },
+  { cmd: '/delivery <id>', who: 'vibecoder', status: 'paused', icon: PauseCircle, purpose: 'Закрыть brief. На паузе с 2026-05-16.' },
+  { cmd: '/settings', who: 'vibecoder', status: 'paused', icon: PauseCircle, purpose: 'Сменить язык. На паузе — пока бот общается только на узбекском (формальное «Siz»).' },
 ];
 
 // Sidebar reflects the current slimmed nav. Weekly review, Monthly scores
@@ -25,11 +29,10 @@ const COMMANDS: CmdRow[] = [
 // don't list them here, otherwise the manager goes hunting for menu items
 // that aren't there.
 const SIDEBAR: Array<{ label: string; purpose: string }> = [
-  { label: 'Daily', purpose: 'Одна строка на каждого vibecoder за выбранный день: standup ✓/✗, статус report (on-time / late / missed / pending), proof, обещание, blocker. По умолчанию сегодня. Кто наверху — нужно внимание.' },
-  { label: 'Stand-up', purpose: 'Утренние ответы за выбранный день. Кто что обещал к концу дня.' },
+  { label: 'Daily', purpose: 'Одна строка на каждого vibecoder за выбранный день: статус report (vaqtida / kechikkan / yuborilmagan / kutilmoqda), proof, обещание, blocker. По умолчанию сегодня. Кто наверху — нужно внимание.' },
   { label: 'Status', purpose: 'Status-апдейты за последние 12 часов. Поиск, например, по слову «blocker».' },
   { label: 'Team', purpose: 'Roster: добавить или редактировать vibecoder, привязать @username, проставить базовую зарплату и baseline бонуса, поставить на паузу.' },
-  { label: 'Settings', purpose: 'Аккаунт (твой email, кнопка «Выйти»), состояние бота, расписание (что и когда бот делает).' },
+  { label: 'Settings', purpose: 'Аккаунт, состояние бота, расписание (что и когда бот делает), и опасная зона — удалить данные за сегодня или за неделю.' },
   { label: 'How it works', purpose: 'Эта страница.' },
 ];
 
@@ -41,54 +44,113 @@ export default function Help() {
         <p className="text-muted-foreground mt-1 text-sm">
           Один Telegram-бот + одна общая группа. Никаких топиков. На каждого vibecoder за каждый день
           бот публикует <span className="font-medium text-foreground">одно сообщение</span> и редактирует
-          его в течение дня — стэндап утром, статусы каждые 2 часа, отчёт вечером. Менеджер скроллит
-          группу и видит день каждого человека одним постом.
+          его в течение дня — /status каждые 2 часа, отчёт вечером. Менеджер скроллит группу и видит день
+          каждого человека одним постом.
+        </p>
+        <p className="text-muted-foreground mt-2 text-sm">
+          Бот общается с вайбкодерами <span className="font-medium text-foreground">только на узбекском</span>{' '}
+          (формальное «Siz»). Русский и английский временно на паузе — файлы переводов сохранены, можно
+          вернуть позже. Админка остаётся русской.
         </p>
       </div>
 
       {/* Concrete walkthrough of a real day. Helps a manager visualize
-          before they live the cadence themselves. */}
+          before they live the cadence themselves. Examples mirror the
+          actual server/src/bot/daily-card.ts output (HTML formatting is
+          rendered as bold in Telegram). */}
       <section>
         <h2 className="text-lg font-semibold mb-3">Один день в системе</h2>
         <div className="rounded-2xl border border-border/60 bg-card overflow-hidden divide-y divide-border/40">
           <Step time="09:14" actor="Aziz">
-            Бот DM-ит: «☀️ /standup». Aziz отвечает на 5 вопросов. В группе появляется его карта дня:
+            Aziz открывает бота, видит приветствие на узбекском, начинает день. В группе пока ничего нет —
+            карта появится после первого /status.
+          </Step>
+          <Step time="10:02" actor="Aziz">
+            Бот DM-ит: «⚡ /status». Aziz отвечает на 5 вопросов. В группе появляется карта дня:
             <Card>
-              {`📅 15/05/2026 · Aziz Karimov · ⏳ pending\n\n☀️ Stand-up · 09:14\nВчера: закончил onboarding flow\nСегодня: выкатить /invoices в staging\nDeadline: завтра 18:00\nBlocker: нет\nEOD: страница /invoices работает на staging`}
+{`📅 2026-05-16 · Aziz Karimov
+⏳ Kutilmoqda
+━━━━━━━━━━━━━━━━━━━━
+
+⚡ STATUS · 10:02
+Vazifa: invoice list + filters
+Hozir: pagination ustida
+Blocker: yoʻq
+Vaqtida: ✅ ha`}
             </Card>
           </Step>
           <Step time="10:05" actor="Менеджер">
-            Бот присылает DM:
+            Бот присылает DM-сводку:
             <Card>
-              {`📅 2026-05-15\nOn-time: 0\nLate: 0\nPending: 4 / 5\nMissing: Bekzod, Islom, Jasurbek, Samandar`}
+{`📅 2026-05-16
+Vaqtida: 0
+Kechikkan: 0
+Yuborilmagan/Kutilmoqda: 5 / 5`}
             </Card>
-            Stand-up пока сделал только Aziz. Если кто-то ещё не отвечает к 10:30 — можно ткнуть лично.
+            Никто ещё не сдал отчёт (нормально — рано). Если к 12:00 у кого-то нет ни одного /status — стоит ткнуть в личку.
           </Step>
           <Step time="14:00" actor="Aziz">
-            Бот DM-ит: «⚡ /status». Карта в группе обновляется (это та же самая, не новая):
+            Бот снова DM-ит: «⚡ /status». Та же карта в группе обновляется (это редактирование, не новое сообщение):
             <Card>
-              {`📅 15/05/2026 · Aziz Karimov · ⏳ pending\n\n☀️ Stand-up · 09:14 …\n⚡ 13:58 · invoice фильтры · сейчас: добавляю пагинацию · blocker: нет · в срок: ✅`}
+{`📅 2026-05-16 · Aziz Karimov
+⏳ Kutilmoqda
+━━━━━━━━━━━━━━━━━━━━
+
+⚡ STATUS · 10:02
+Vazifa: invoice list + filters
+…
+
+⚡ STATUS · 13:58
+Vazifa: invoice filters
+Oxirgi update'dan: pagination tugatildi
+Hozir: edge case testlari
+Blocker: yoʻq
+Vaqtida: ✅ ha`}
             </Card>
           </Step>
-          <Step time="17:42" actor="Bekzod">
-            Получает финальное напоминание (бот DM-ит в 17:30 тем, кто ещё не сдал отчёт). Открывает бота и пишет /report.
+          <Step time="17:30" actor="Bekzod">
+            Получает финальное напоминание (бот DM-ит в 17:30 тем, кто ещё не сдал отчёт):
+            <Card>
+{`⏰ Oyna yopilishiga 30 daqiqa qoldi. Hozir /report yuboring.`}
+            </Card>
+            Открывает бота и пишет /report.
           </Step>
           <Step time="18:02" actor="Aziz">
-            Отправляет /report. Карта закрывается:
+            Отправляет /report. Карта закрывается финальным блоком:
             <Card>
-              {`📅 15/05/2026 · Aziz Karimov · ✅ on-time\n\n☀️ Stand-up · 09:14 …\n⚡ 10:00 · …\n⚡ 12:00 · …\n⚡ 14:00 · …\n⚡ 16:00 · …\n\n📋 Report · 18:02\nСделал: invoice list + фильтры + пагинация\nProof: https://staging.../invoices\nPromise: ✅`}
+{`📅 2026-05-16 · Aziz Karimov
+✅ Vaqtida
+━━━━━━━━━━━━━━━━━━━━
+
+⚡ STATUS · 10:02 …
+⚡ STATUS · 13:58 …
+⚡ STATUS · 16:01 …
+
+📋 HISOBOT · 18:02
+Bajarilgan: invoice list + filters + pagination
+Yakunlangan: PR #142
+Jarayonda: edge case testlari
+Blocker: yoʻq
+Ertaga: code review
+Proof: https://staging.../invoices
+Vaʼda: ✅ ha`}
             </Card>
           </Step>
           <Step time="18:00" actor="Менеджер">
             Бот выкладывает в группу итог дня и шлёт менеджеру DM:
             <Card>
-              {`📊 Daily summary · 2026-05-15\nOn-time: 4\nLate: 0\nMissed: 1\nИтого активных: 5`}
+{`📊 Kunlik yakun · 2026-05-16
+━━━━━━━━━━━━━━━━━━━━
+Vaqtida: 4
+Kechikkan: 0
+Yuborilmagan: 1
+Jami faol: 5`}
             </Card>
-            Один человек пропустил отчёт (Jasurbek). Бот пометил его «missed».
+            Один человек пропустил отчёт (Jasurbek) — бот пометил «yuborilmagan».
           </Step>
           <Step time="18:30" actor="Менеджер">
-            Открывает <b>Daily</b> в админке. Jasurbek наверху (статус missed). Кликает имя → видит, что
-            за день не было ни одного /status. Утром в личке поговорить — почему день прошёл без сигнала.
+            Открывает <b>Daily</b> в админке. Jasurbek наверху (статус yuborilmagan). Кликает имя → видит,
+            что за день не было ни одного /status. Утром в личке поговорить — почему день прошёл без сигнала.
           </Step>
         </div>
       </section>
@@ -107,12 +169,21 @@ export default function Help() {
             <tbody>
               {COMMANDS.map((c) => {
                 const Icon = c.icon;
+                const paused = c.status === 'paused';
                 return (
-                  <tr key={c.cmd} className="border-t border-border/40">
+                  <tr
+                    key={c.cmd}
+                    className={`border-t border-border/40 ${paused ? 'opacity-60' : ''}`}
+                  >
                     <td className="px-4 py-3 align-top">
                       <div className="flex items-center gap-2 font-mono text-[13px]">
                         <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                        {c.cmd}
+                        <span className={paused ? 'line-through decoration-muted-foreground/40' : ''}>{c.cmd}</span>
+                        {paused ? (
+                          <span className="ml-1 rounded-full bg-muted/60 px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                            paused
+                          </span>
+                        ) : null}
                       </div>
                     </td>
                     <td className="px-4 py-3 align-top text-xs">
@@ -140,11 +211,10 @@ export default function Help() {
       <section>
         <h2 className="text-lg font-semibold mb-3">Ритм дня</h2>
         <ol className="space-y-2 text-sm text-foreground/85 list-decimal list-inside">
-          <li><span className="font-medium">09:00</span> — бот DM-ит: «/standup». Карта дня создаётся.</li>
           <li><span className="font-medium">10:00 / 12:00 / 14:00 / 16:00</span> — если за 90 минут нет статуса, бот DM-ит: «/status». Карта обновляется.</li>
           <li><span className="font-medium">12:00 и 17:30</span> — мягкое и финальное напоминание про /report, если ещё не отправлен.</li>
-          <li><span className="font-medium">18:00</span> — окно отчёта закрывается. Кто не отправил — помечается missed. Сводка по команде уходит в группу.</li>
-          <li><span className="font-medium">10:00 / 14:00 / 18:00</span> — менеджер получает DM-сводку (on-time / late / pending + кто пропускает).</li>
+          <li><span className="font-medium">18:00</span> — окно отчёта закрывается. Кто не отправил — помечается yuborilmagan. Сводка по команде уходит в группу.</li>
+          <li><span className="font-medium">10:00 / 14:00 / 18:00</span> — менеджер получает DM-сводку (vaqtida / kechikkan / kutilmoqda + кто пропускает).</li>
         </ol>
       </section>
 
@@ -162,7 +232,8 @@ export default function Help() {
 
       <section className="text-xs text-muted-foreground border-t border-border/40 pt-4">
         Если что-то сломалось — открой <span className="font-mono">Settings</span>, проверь, что
-        «Группа подключена» = ✓ и режим бота = «webhook». Если карта в группе не редактируется — бот должен быть админом этой группы.
+        «Группа подключена» = ✓ и режим бота = «webhook». Если карта в группе не редактируется — бот
+        должен быть админом этой группы.
       </section>
     </div>
   );
