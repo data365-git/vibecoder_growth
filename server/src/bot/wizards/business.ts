@@ -1,7 +1,7 @@
 import type { Conversation } from '@grammyjs/conversations';
 import { db } from '../../db/client.js';
 import * as s from '../../db/schema/growth.js';
-import { t } from '../i18n.ru.js';
+import { tForConversation } from '../i18n/index.js';
 import { askUrl, askText, askLines } from './helpers.js';
 import type { BotContext } from '../types.js';
 
@@ -9,6 +9,7 @@ const SOURCE_TYPES = ['podcast', 'video', 'interview', 'article', 'other'] as co
 type SourceType = (typeof SOURCE_TYPES)[number];
 
 export async function businessConversation(conversation: Conversation<BotContext, BotContext>, ctx: BotContext) {
+  const t = await tForConversation(conversation);
   const vibecoderId = ctx.vibecoderId!;
   try {
     const sourceUrl = await askUrl(conversation, ctx, t.businessStart);

@@ -4,11 +4,13 @@ import { eq, and, sql, isNull } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import * as s from '../db/schema/growth.js';
 import { env } from '../env.js';
-import { t } from './i18n.ru.js';
+import { getT, tFor, isLang } from './i18n/index.js';
+import type { Lang } from './i18n/types.js';
 import type { BotContext, SessionData } from './types.js';
 import { PgSessionStorage } from './session-storage.js';
 import { resolveIdentity } from './middlewares/auth.js';
 import { mainMenu, managerMenu } from './keyboards.js';
+import { sendLanguagePicker, persistLanguage } from './language.js';
 import { reportConversation } from './wizards/report.js';
 import { standupConversation } from './wizards/standup.js';
 import { statusConversation } from './wizards/status.js';
@@ -16,31 +18,50 @@ import { briefConversation } from './wizards/brief.js';
 import { deliveryConversation } from './wizards/delivery.js';
 import { startOfflineMode, endOfflineMode } from './wizards/offline.js';
 
-// One-line descriptions shown in the Telegram client's command picker
-// (the menu that pops up when a user types "/"). Keep them short and
-// action-oriented so a new vibecoder can self-onboard without docs.
-// PAUSED 2026-05-16: /standup, /brief, /delivery hidden from the command
-// picker. Wizards, schema, and daily-card rendering remain intact so we can
-// re-enable them later by un-commenting the lines below + the handlers and
-// conversation registrations further down + the entries in keyboards.ts.
-const COMMAND_DESCRIPTIONS: Array<{ command: string; description: string }> = [
-  // { command: 'standup', description: 'Утренний план — 5 вопросов' },
-  { command: 'status', description: 'Короткий статус — над чем работаешь сейчас' },
-  { command: 'report', description: 'Отчёт за день (до 18:00)' },
-  // { command: 'brief', description: 'Взять задачу + self-deadline' },
-  // { command: 'delivery', description: 'Закрыть brief (формат: /delivery <id>)' },
-  { command: 'cancel', description: 'Отменить текущий wizard' },
-  { command: 'help', description: 'Подсказка по командам' },
-];
+// Localised command pickers, registered per Telegram client language. Telegram
+// matches by the user's app language (`language_code`), not by our stored
+// preference — so this only affects the "/" autocomplete popup, not the
+// content of replies. Replies use ctx.lang.
+// PAUSED 2026-05-16: /standup, /brief, /delivery hidden from the picker.
+const COMMAND_PICKER: Record<Lang, Array<{ command: string; description: string }>> = {
+  ru: [
+    { command: 'status', description: 'Короткий статус — над чем работаешь сейчас' },
+    { command: 'report', description: 'Отчёт за день (до 18:00)' },
+    { command: 'settings', description: 'Сменить язык' },
+    { command: 'cancel', description: 'Отменить текущий wizard' },
+    { command: 'help', description: 'Подсказка по командам' },
+  ],
+  en: [
+    { command: 'status', description: 'Quick status — what you are working on now' },
+    { command: 'report', description: 'Daily report (before 18:00)' },
+    { command: 'settings', description: 'Change language' },
+    { command: 'cancel', description: 'Cancel the current wizard' },
+    { command: 'help', description: 'Command hints' },
+  ],
+  uz: [
+    { command: 'status', description: 'Qisqa status — hozir nima ustida ishlayapsan' },
+    { command: 'report', description: 'Kunlik hisobot (18:00 gacha)' },
+    { command: 'settings', description: 'Tilni almashtirish' },
+    { command: 'cancel', description: 'Joriy wizardni bekor qilish' },
+    { command: 'help', description: 'Komandalar boʻyicha ipucha' },
+  ],
+};
 
 export function createBot(): Bot<BotContext> {
   if (!env.GROWTH_BOT_TOKEN) throw new Error('GROWTH_BOT_TOKEN not set');
   const bot = new Bot<BotContext>(env.GROWTH_BOT_TOKEN);
 
-  // Register command suggestions in Telegram's UI. Fire-and-forget — if
-  // Telegram is briefly unreachable it's not worth crashing startup over.
-  bot.api.setMyCommands(COMMAND_DESCRIPTIONS).catch((e) => {
-    console.warn('[bot] setMyCommands failed:', e);
+  // Register command suggestions in Telegram's UI. ru is the default scope;
+  // en + uz are language-scoped overrides. Fire-and-forget — if Telegram is
+  // briefly unreachable it's not worth crashing startup over.
+  bot.api.setMyCommands(COMMAND_PICKER.ru).catch((e) => {
+    console.warn('[bot] setMyCommands(default) failed:', e);
+  });
+  bot.api.setMyCommands(COMMAND_PICKER.en, { language_code: 'en' }).catch((e) => {
+    console.warn('[bot] setMyCommands(en) failed:', e);
+  });
+  bot.api.setMyCommands(COMMAND_PICKER.uz, { language_code: 'uz' }).catch((e) => {
+    console.warn('[bot] setMyCommands(uz) failed:', e);
   });
 
   bot.use(
@@ -62,13 +83,45 @@ export function createBot(): Bot<BotContext> {
   // business, learning, explain, book) stay in the codebase but are not
   // registered — humans review those manually for now.
   bot.use(createConversation(reportConversation, 'report'));
-  // PAUSED — see COMMAND_DESCRIPTIONS note above.
+  // PAUSED — see COMMAND_PICKER note above.
   // bot.use(createConversation(standupConversation, 'standup'));
   bot.use(createConversation(statusConversation, 'status'));
   // bot.use(createConversation(briefConversation, 'brief'));
   // bot.use(createConversation(deliveryConversation, 'delivery'));
 
-  // /start — onboarding / link by username if not linked.
+  // Inline-keyboard callback: `setlang:<lang>`. Fires from the language
+  // picker shown on first /start and from /settings.
+  bot.callbackQuery(/^setlang:(ru|en|uz)$/, async (ctx) => {
+    const lang = (ctx.match?.[1] ?? '') as Lang;
+    if (!isLang(lang)) {
+      await ctx.answerCallbackQuery();
+      return;
+    }
+    await persistLanguage(ctx, lang);
+    const t = getT(lang);
+    await ctx.answerCallbackQuery({ text: t.languageChanged });
+    // Replace the picker so a user can't double-click and confuse themselves.
+    try {
+      await ctx.editMessageReplyMarkup(undefined);
+    } catch {
+      /* picker may already be gone if user used /settings twice */
+    }
+    // Resolve display name for the greeting; both rows may exist.
+    let name = '';
+    if (ctx.vibecoderId) {
+      const [vc] = await db.select().from(s.vibecoders).where(eq(s.vibecoders.id, ctx.vibecoderId));
+      name = vc?.fullNameRu ?? '';
+    } else if (ctx.managerId) {
+      const [mgr] = await db.select().from(s.growthManagers).where(eq(s.growthManagers.id, ctx.managerId));
+      name = mgr?.fullNameRu ?? '';
+    }
+    if (ctx.vibecoderId || ctx.isManager) {
+      await ctx.reply(t.linked(name), { reply_markup: ctx.isManager ? managerMenu : mainMenu });
+    }
+  });
+
+  // /start — link by username if needed, then either prompt for a language
+  // (first ever interaction) or send the localised welcome.
   bot.command('start', async (ctx) => {
     const username = ctx.from?.username?.toLowerCase();
     const tgId = ctx.from?.id;
@@ -82,6 +135,7 @@ export function createBot(): Bot<BotContext> {
         await db.update(s.growthManagers).set({ tgUserId: BigInt(tgId) }).where(eq(s.growthManagers.id, mgr.id));
         ctx.managerId = mgr.id;
         ctx.isManager = true;
+        if (isLang(mgr.lang)) ctx.lang = mgr.lang;
       }
     }
 
@@ -93,30 +147,44 @@ export function createBot(): Bot<BotContext> {
       if (vc) {
         await db.update(s.vibecoders).set({ tgUserId: BigInt(tgId) }).where(eq(s.vibecoders.id, vc.id));
         ctx.vibecoderId = vc.id;
+        if (!ctx.lang && isLang(vc.lang)) ctx.lang = vc.lang;
       }
     }
 
-    // resolveIdentity already attempted auto-link by username on this
-    // update, so if we still don't have a vibecoderId, the user simply
-    // isn't rostered yet. Echo back the @username the bot sees so the
-    // manager can match the Team page entry exactly.
-    if (ctx.vibecoderId || ctx.isManager) {
-      let name = '';
-      if (ctx.vibecoderId) {
-        const [vc] = await db.select().from(s.vibecoders).where(eq(s.vibecoders.id, ctx.vibecoderId));
-        name = vc?.fullNameRu ?? '';
-      } else if (ctx.managerId) {
-        const [mgr] = await db.select().from(s.growthManagers).where(eq(s.growthManagers.id, ctx.managerId));
-        name = mgr?.fullNameRu ?? '';
-      }
-      await ctx.reply(t.linked(name), { reply_markup: ctx.isManager ? managerMenu : mainMenu });
+    if (!ctx.vibecoderId && !ctx.isManager) {
+      const t = tFor(ctx);
+      await ctx.reply(t.notLinkedWithUsername(ctx.from?.username));
       return;
     }
 
-    await ctx.reply(t.notLinkedWithUsername(ctx.from?.username));
+    if (!ctx.lang) {
+      await sendLanguagePicker(ctx, 'first');
+      return;
+    }
+
+    const t = tFor(ctx);
+    let name = '';
+    if (ctx.vibecoderId) {
+      const [vc] = await db.select().from(s.vibecoders).where(eq(s.vibecoders.id, ctx.vibecoderId));
+      name = vc?.fullNameRu ?? '';
+    } else if (ctx.managerId) {
+      const [mgr] = await db.select().from(s.growthManagers).where(eq(s.growthManagers.id, ctx.managerId));
+      name = mgr?.fullNameRu ?? '';
+    }
+    await ctx.reply(t.linked(name), { reply_markup: ctx.isManager ? managerMenu : mainMenu });
+  });
+
+  bot.command('settings', async (ctx) => {
+    if (!ctx.vibecoderId && !ctx.isManager) {
+      const t = tFor(ctx);
+      await ctx.reply(t.notLinkedWithUsername(ctx.from?.username));
+      return;
+    }
+    await sendLanguagePicker(ctx, 'settings');
   });
 
   bot.command('help', async (ctx) => {
+    const t = tFor(ctx);
     if (ctx.vibecoderId) {
       const [vc] = await db.select().from(s.vibecoders).where(eq(s.vibecoders.id, ctx.vibecoderId));
       await ctx.reply(t.linked(vc?.fullNameRu ?? ''));
@@ -127,7 +195,7 @@ export function createBot(): Bot<BotContext> {
 
   bot.command('cancel', async (ctx) => {
     await ctx.conversation.exitAll();
-    await ctx.reply(t.cancel);
+    await ctx.reply(tFor(ctx).cancel);
   });
 
   // Vibecoder commands — discipline only.
@@ -137,22 +205,29 @@ export function createBot(): Bot<BotContext> {
   // synthetic ctx — and the wizard's null-guard fires because middleware
   // properties like ctx.vibecoderId don't survive replay.
   const enter = (name: string) => async (ctx: BotContext) => {
+    const t = tFor(ctx);
     if (!ctx.vibecoderId) return ctx.reply(t.notLinkedWithUsername(ctx.from?.username));
+    if (!ctx.lang) {
+      await sendLanguagePicker(ctx, 'first');
+      return;
+    }
     await ctx.conversation.exitAll();
     await ctx.conversation.enter(name);
   };
   bot.command('report', enter('report'));
-  // PAUSED — see COMMAND_DESCRIPTIONS note above.
+  // PAUSED — see COMMAND_PICKER note above.
   // bot.command('standup', enter('standup'));
   bot.command('status', enter('status'));
   // bot.command('brief', enter('brief'));
 
   // bot.command('delivery', async (ctx) => {
+  //   const t = tFor(ctx);
   //   if (!ctx.vibecoderId) return ctx.reply(t.notLinkedWithUsername(ctx.from?.username));
+  //   if (!ctx.lang) { await sendLanguagePicker(ctx, 'first'); return; }
   //   const arg = (ctx.match ?? '').toString().trim();
   //   const briefId = Number(arg);
   //   if (!Number.isFinite(briefId) || briefId <= 0) {
-  //     return ctx.reply('Использование: /delivery <briefId>');
+  //     return ctx.reply(t.deliveryUsage);
   //   }
   //   await ctx.conversation.exitAll();
   //   await ctx.conversation.enter('delivery', briefId);
@@ -163,6 +238,7 @@ export function createBot(): Bot<BotContext> {
   bot.command('online', async (ctx) => endOfflineMode(ctx));
 
   bot.command('today', async (ctx) => {
+    const t = tFor(ctx);
     if (!ctx.isManager) return ctx.reply(t.noPermission);
     const ymd = new Date().toISOString().slice(0, 10);
     const reports = await db.select().from(s.dailyReports).where(eq(s.dailyReports.reportDate, ymd));

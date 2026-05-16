@@ -3,7 +3,7 @@ import { eq, and } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import * as s from '../../db/schema/growth.js';
 import { env } from '../../env.js';
-import { t } from '../i18n.ru.js';
+import { tForConversation } from '../i18n/index.js';
 import { askText, askLines } from './helpers.js';
 import type { BotContext } from '../types.js';
 
@@ -14,6 +14,7 @@ function currentMonthYear(): string {
 }
 
 export async function bookConversation(conversation: Conversation<BotContext, BotContext>, ctx: BotContext) {
+  const t = await tForConversation(conversation);
   const vibecoderId = ctx.vibecoderId!;
   const month = currentMonthYear();
   const existing = await db

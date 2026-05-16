@@ -1,10 +1,11 @@
 import { eq, isNull } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import * as s from '../../db/schema/growth.js';
-import { t } from '../i18n.ru.js';
+import { tFor } from '../i18n/index.js';
 import type { BotContext } from '../types.js';
 
 export async function startOfflineMode(ctx: BotContext, reason?: string) {
+  const t = tFor(ctx);
   if (!ctx.isManager || !ctx.managerId) {
     await ctx.reply(t.noPermission);
     return;
@@ -23,6 +24,7 @@ export async function startOfflineMode(ctx: BotContext, reason?: string) {
 }
 
 export async function endOfflineMode(ctx: BotContext) {
+  const t = tFor(ctx);
   if (!ctx.isManager) {
     await ctx.reply(t.noPermission);
     return;

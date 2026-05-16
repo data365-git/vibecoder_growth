@@ -13,6 +13,7 @@
     "seed": "tsx scripts/seed.ts",
     "seed:team": "tsx scripts/seed-team.ts",
     "seed:demo": "tsx scripts/seed-demo.ts",
+    "reset:data": "tsx scripts/reset-data.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -3,7 +3,7 @@ import { eq, and } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import * as s from '../../db/schema/growth.js';
 import { env } from '../../env.js';
-import { t } from '../i18n.ru.js';
+import { tForConversation } from '../i18n/index.js';
 import { askText, askOptional } from './helpers.js';
 import { upsertDailyCard } from '../daily-card.js';
 import type { BotContext } from '../types.js';
@@ -13,6 +13,7 @@ function todayYmd(): string {
 }
 
 export async function standupConversation(conversation: Conversation<BotContext, BotContext>, ctx: BotContext) {
+  const t = await tForConversation(conversation);
   const vibecoderId = await conversation.external((outerCtx) => outerCtx.vibecoderId);
   if (!vibecoderId) {
     await ctx.reply(t.notLinked);

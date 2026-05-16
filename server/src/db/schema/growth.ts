@@ -61,6 +61,8 @@ export const vibecoders = pgTable(
     baseSalaryUzs: bigint('base_salary_uzs', { mode: 'number' }).notNull().default(0),
     bonusBaselineUzs: bigint('bonus_baseline_uzs', { mode: 'number' }).notNull().default(0),
     timezone: varchar('timezone', { length: 64 }).notNull().default('Asia/Tashkent'),
+    // 'ru' | 'en' | 'uz' — null until the user picks on first interaction.
+    lang: varchar('lang', { length: 2 }),
     active: boolean('active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -80,6 +82,8 @@ export const growthManagers = pgTable(
     fullNameRu: varchar('full_name_ru', { length: 255 }).notNull(),
     canToggleOffline: boolean('can_toggle_offline').notNull().default(true),
     notifyChannelId: bigint('notify_channel_id', { mode: 'bigint' }),
+    // 'ru' | 'en' | 'uz' — null until the manager picks on first interaction.
+    lang: varchar('lang', { length: 2 }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({

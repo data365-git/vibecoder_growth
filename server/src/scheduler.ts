@@ -5,6 +5,8 @@ import { db } from './db/client.js';
 import * as s from './db/schema/growth.js';
 import { env } from './env.js';
 import { persistAutoScore } from './scoring/compute.js';
+import { getT } from './bot/i18n/index.js';
+import type { T } from './bot/i18n/types.js';
 import type { BotContext } from './bot/types.js';
 
 const TZ = env.TZ;
@@ -49,12 +51,13 @@ async function dmAll(
 async function dmIf(
   bot: Bot<BotContext>,
   vc: typeof s.vibecoders.$inferSelect,
-  msg: string,
+  msg: string | ((t: T) => string),
   kind: typeof s.reminderKindEnum.enumValues[number],
 ) {
   if (!vc.tgUserId) return;
+  const text = typeof msg === 'function' ? msg(getT(vc.lang)) : msg;
   try {
-    const sent = await bot.api.sendMessage(Number(vc.tgUserId), msg);
+    const sent = await bot.api.sendMessage(Number(vc.tgUserId), text);
     await db.insert(s.botReminders).values({
       vibecoderId: vc.id,
       kind,
@@ -88,7 +91,7 @@ export function startScheduler(bot: Bot<BotContext>) {
       const submittedIds = new Set(reports.filter((r) => r.submittedAt).map((r) => r.vibecoderId));
       for (const vc of vcs) {
         if (submittedIds.has(vc.id)) continue;
-        await dmIf(bot, vc, '💡 Напоминание: до 18:00 нужно отправить /report.', 'report_soft');
+        await dmIf(bot, vc, (t) => t.nudgeReportSoft, 'report_soft');
       }
     },
     { timezone: TZ },
@@ -104,7 +107,7 @@ export function startScheduler(bot: Bot<BotContext>) {
       const submittedIds = new Set(reports.filter((r) => r.submittedAt).map((r) => r.vibecoderId));
       for (const vc of vcs) {
         if (submittedIds.has(vc.id)) continue;
-        await dmIf(bot, vc, '⏰ Осталось 30 минут до закрытия окна. /report сейчас.', 'report_final');
+        await dmIf(bot, vc, (t) => t.nudgeReportFinal, 'report_final');
       }
     },
     { timezone: TZ },

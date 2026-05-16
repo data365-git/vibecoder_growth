@@ -1,6 +1,7 @@
 import { eq, and, isNull, sql } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import * as s from '../../db/schema/growth.js';
+import { isLang } from '../i18n/types.js';
 import type { BotContext } from '../types.js';
 
 // Resolve the Telegram user to a vibecoder / manager row.
@@ -71,6 +72,12 @@ export async function resolveIdentity(ctx: BotContext, next: () => Promise<void>
     ctx.managerId = mgr.id;
     ctx.isManager = true;
   }
+
+  // Resolve preferred language. Manager wins when both rows exist (e.g.
+  // Saidumar is a vibecoder + manager) — managers tend to switch UI
+  // separately. Falls through to `null` so handlers prompt the picker.
+  const rawLang = mgr?.lang ?? vc?.lang ?? null;
+  ctx.lang = isLang(rawLang) ? rawLang : null;
 
   await next();
 }

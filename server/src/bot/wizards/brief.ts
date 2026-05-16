@@ -2,7 +2,7 @@ import type { Conversation } from '@grammyjs/conversations';
 import { db } from '../../db/client.js';
 import * as s from '../../db/schema/growth.js';
 import { env } from '../../env.js';
-import { t } from '../i18n.ru.js';
+import { tForConversation } from '../i18n/index.js';
 import { askText, askLines, askOptional } from './helpers.js';
 import { upsertDailyCard } from '../daily-card.js';
 import type { BotContext } from '../types.js';
@@ -33,6 +33,7 @@ function parseDeadline(raw: string): Date | null {
 }
 
 export async function briefConversation(conversation: Conversation<BotContext, BotContext>, ctx: BotContext) {
+  const t = await tForConversation(conversation);
   const vibecoderId = await conversation.external((outerCtx) => outerCtx.vibecoderId);
   if (!vibecoderId) {
     await ctx.reply(t.notLinked);
@@ -43,7 +44,7 @@ export async function briefConversation(conversation: Conversation<BotContext, B
     const understanding = await askText(conversation, ctx, t.briefQ2);
     const expectedResult = await askText(conversation, ctx, t.briefQ3);
     const userFlow = await askText(conversation, ctx, t.briefQ4);
-    const steps = await askLines(conversation, ctx, t.briefQ5, 1, 'Нужен хотя бы 1 шаг.');
+    const steps = await askLines(conversation, ctx, t.briefQ5, 1, t.briefNeedAtLeastOneStep);
     let deadline: Date | null = null;
     while (!deadline) {
       const raw = await askText(conversation, ctx, t.briefQ6);
@@ -66,7 +67,7 @@ export async function briefConversation(conversation: Conversation<BotContext, B
         openQuestions: null,
       })
       .returning();
-    await ctx.reply(`${t.done} Brief id: #${row?.id ?? '?'}\nКогда задача будет готова, отправь: /delivery ${row?.id ?? ''}`);
+    await ctx.reply(`${t.done} ${t.briefSavedHint(row?.id ?? '?')}`);
 
     if (row?.id) {
       const today = new Date(new Date().toLocaleString('en-US', { timeZone: env.TZ })).toISOString().slice(0, 10);

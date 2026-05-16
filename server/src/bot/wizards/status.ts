@@ -2,7 +2,7 @@ import type { Conversation } from '@grammyjs/conversations';
 import { db } from '../../db/client.js';
 import * as s from '../../db/schema/growth.js';
 import { env } from '../../env.js';
-import { t } from '../i18n.ru.js';
+import { tForConversation } from '../i18n/index.js';
 import { askText, askOptional, askYesNo } from './helpers.js';
 import { activeOfflineSession } from '../middlewares/auth.js';
 import { upsertDailyCard } from '../daily-card.js';
@@ -13,6 +13,7 @@ function todayYmd(): string {
 }
 
 export async function statusConversation(conversation: Conversation<BotContext, BotContext>, ctx: BotContext) {
+  const t = await tForConversation(conversation);
   const vibecoderId = await conversation.external((outerCtx) => outerCtx.vibecoderId);
   if (!vibecoderId) {
     await ctx.reply(t.notLinked);

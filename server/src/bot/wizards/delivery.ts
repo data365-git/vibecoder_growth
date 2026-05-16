@@ -2,13 +2,14 @@ import type { Conversation } from '@grammyjs/conversations';
 import { eq, and } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import * as s from '../../db/schema/growth.js';
-import { t } from '../i18n.ru.js';
+import { tForConversation } from '../i18n/index.js';
 import { askText, askOptional } from './helpers.js';
 import { upsertDailyCard } from '../daily-card.js';
 import { env } from '../../env.js';
 import type { BotContext } from '../types.js';
 
 export async function deliveryConversation(conversation: Conversation<BotContext, BotContext>, ctx: BotContext, briefId: number) {
+  const t = await tForConversation(conversation);
   const vibecoderId = await conversation.external((outerCtx) => outerCtx.vibecoderId);
   if (!vibecoderId) {
     await ctx.reply(t.notLinked);
@@ -55,7 +56,7 @@ export async function deliveryConversation(conversation: Conversation<BotContext
         .set({ completedAt, onTime })
         .where(eq(s.taskOwnershipBriefs.id, briefId));
     });
-    await ctx.reply(`${t.done} ${onTime ? '✅ В срок.' : '⚠️ После дедлайна.'}`);
+    await ctx.reply(`${t.done} ${onTime ? t.deliveryOnTime : t.deliveryLate}`);
 
     const today = new Date(new Date().toLocaleString('en-US', { timeZone: env.TZ })).toISOString().slice(0, 10);
     await upsertDailyCard(ctx.api, vibecoderId, today);
