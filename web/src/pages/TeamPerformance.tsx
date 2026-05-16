@@ -1,3 +1,4 @@
+// Performance Dashboard — team overview with bonus tracking and risk status
 import { useNavigate } from 'react-router-dom';
 import { TrendingUp, TrendingDown, Minus, AlertTriangle, DollarSign, Award, Target } from 'lucide-react';
 import { usePeriod, type PeriodPreset } from '../hooks/usePeriod';
