@@ -6,7 +6,9 @@ export const t = {
     username
       ? `Привет! Я не нашёл тебя в списке vibecoder’ов. Мой бот видит твой Telegram username как @${username}. Попроси менеджера открыть Team page и проверить, что твой @username записан ровно так. Потом отправь /start.`
       : `Привет! У тебя в Telegram не установлен @username — без него я не могу тебя привязать. Зайди в Settings → Edit profile в Telegram, поставь username, и попробуй снова.`,
-  linked: (name: string) => `Привет, ${name}! 👋\nТы подключён к Growth-боту.\n\nКак работаем:\n— Ты пишешь команды мне в личку.\n— Я добавляю всё в один пост за день в общей группе — менеджер видит твой день одной картой.\n\nКоманды:\n☀️ /standup — утренний план (5 вопросов)\n⚡ /status — короткий статус: над чем работаешь сейчас\n📋 /report — отчёт за день (до 18:00)\n📐 /brief — взять задачу + self-deadline\n📦 /delivery <id> — закрыть brief\n❌ /cancel — отменить текущий wizard`,
+  // PAUSED 2026-05-16: /standup, /brief, /delivery are temporarily disabled
+  // (see server/src/bot/index.ts). Restore the lines below when re-enabling.
+  linked: (name: string) => `Привет, ${name}! 👋\nТы подключён к Growth-боту.\n\nКак работаем:\n— Ты пишешь команды мне в личку.\n— Я добавляю всё в один пост за день в общей группе — менеджер видит твой день одной картой.\n\nКоманды:\n⚡ /status — короткий статус: над чем работаешь сейчас\n📋 /report — отчёт за день (до 18:00)\n❌ /cancel — отменить текущий wizard`,
   cancel: 'Отменено.',
   cancelHint: 'Напиши /cancel чтобы отменить.',
   done: '✅ Сохранено.',
