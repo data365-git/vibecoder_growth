@@ -11,6 +11,8 @@ import MonthlyScores from './pages/MonthlyScores';
 import Logs from './pages/Logs';
 import Settings from './pages/Settings';
 import Help from './pages/Help';
+import TeamPerformance from './pages/TeamPerformance';
+import EmployeeDetail from './pages/EmployeeDetail';
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   if (!getToken()) return <Navigate to="/login" replace />;
@@ -39,6 +41,8 @@ export default function App() {
         <Route path="logs/:type?" element={<Logs />} />
         <Route path="settings" element={<Settings />} />
         <Route path="help" element={<Help />} />
+        <Route path="performance" element={<TeamPerformance />} />
+        <Route path="performance/:vibecoderId" element={<EmployeeDetail />} />
       </Route>
     </Routes>
   );

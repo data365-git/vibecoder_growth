@@ -6,6 +6,7 @@ import {
   Users,
   Settings as SettingsIcon,
   HelpCircle,
+  TrendingUp,
 } from 'lucide-react';
 
 // Sidebar is intentionally short: only pages that have live data flowing
@@ -19,6 +20,7 @@ const links = [
   { to: '/standup', label: 'Stand-up', icon: CalendarDays },
   { to: '/status', label: 'Status', icon: Circle },
   { to: '/team', label: 'Team', icon: Users },
+  { to: '/performance', label: 'Performance', icon: TrendingUp },
   { to: '/settings', label: 'Settings', icon: SettingsIcon },
   { to: '/help', label: 'How it works', icon: HelpCircle },
 ];
