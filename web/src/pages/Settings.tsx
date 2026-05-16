@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { api, clearToken } from '../api/client';
 
 interface Me {
@@ -62,14 +63,40 @@ function Check({ ok }: { ok: boolean }) {
   );
 }
 
+interface WipeResult {
+  ok: boolean;
+  mode: 'today' | 'week';
+  start: string;
+  end: string;
+  counts: Record<string, number>;
+}
+
 export default function Settings() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const me = useQuery({ queryKey: ['me'], queryFn: () => api<Me>('/auth/me') });
   const status = useQuery({ queryKey: ['settings', 'status'], queryFn: () => api<BotStatus>('/settings/status') });
+  const [lastWipe, setLastWipe] = useState<WipeResult | null>(null);
+
+  const wipe = useMutation({
+    mutationFn: (mode: 'today' | 'week') =>
+      api<WipeResult>('/settings/wipe-data', { method: 'POST', body: JSON.stringify({ mode }) }),
+    onSuccess: (data) => {
+      setLastWipe(data);
+      qc.invalidateQueries();
+    },
+  });
 
   function handleLogout() {
     clearToken();
     navigate('/login');
+  }
+
+  function confirmAndWipe(mode: 'today' | 'week') {
+    const label = mode === 'today' ? 'сегодня' : 'эту неделю';
+    if (window.confirm(`Удалить все данные за ${label}? Roster (вайбкодеры и менеджеры) сохранится. Это нельзя отменить.`)) {
+      wipe.mutate(mode);
+    }
   }
 
   return (
@@ -171,6 +198,48 @@ export default function Settings() {
         <p className="text-xs text-muted-foreground pt-1">
           Расписание зашито в коде. Скажи мне если надо поменять.
         </p>
+      </section>
+
+      {/* 4. Danger zone — wipe transactional data */}
+      <section className="card-soft p-5 space-y-4 border border-rose-200/70">
+        <div>
+          <h2 className="font-semibold text-[15px] text-rose-700">Опасная зона</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Удалить отчёты, stand-up&apos;ы, status updates, daily cards, briefs/deliveries и weekly reviews за выбранный
+            период. Roster (вайбкодеры и менеджеры) сохраняется. Это нельзя отменить.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            disabled={wipe.isPending}
+            onClick={() => confirmAndWipe('today')}
+            className="rounded-xl bg-rose-600 text-white px-4 py-2.5 text-sm font-semibold hover:bg-rose-700 disabled:opacity-50 shadow-sm"
+          >
+            {wipe.isPending && wipe.variables === 'today' ? 'Удаляем…' : 'Удалить данные за сегодня'}
+          </button>
+          <button
+            type="button"
+            disabled={wipe.isPending}
+            onClick={() => confirmAndWipe('week')}
+            className="rounded-xl bg-rose-600 text-white px-4 py-2.5 text-sm font-semibold hover:bg-rose-700 disabled:opacity-50 shadow-sm"
+          >
+            {wipe.isPending && wipe.variables === 'week' ? 'Удаляем…' : 'Удалить данные за эту неделю'}
+          </button>
+        </div>
+        {wipe.isError ? (
+          <div className="text-sm text-rose-600">Не получилось удалить — проверь права администратора.</div>
+        ) : null}
+        {lastWipe ? (
+          <div className="text-xs text-muted-foreground">
+            Удалено за {lastWipe.start === lastWipe.end ? lastWipe.start : `${lastWipe.start} … ${lastWipe.end}`}:{' '}
+            {Object.entries(lastWipe.counts)
+              .filter(([, n]) => n > 0)
+              .map(([k, n]) => `${k}: ${n}`)
+              .join(' · ') || 'ничего не было'}
+            .
+          </div>
+        ) : null}
       </section>
     </div>
   );
