@@ -1,7 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import {
   LayoutGrid,
-  CalendarDays,
   Circle,
   Users,
   Settings as SettingsIcon,
@@ -14,9 +13,12 @@ import {
 // routes still exist at /weekly /scores /logs for future revival, just
 // hidden from nav. Logout lives on the Settings page now, not in the
 // sidebar corner — it deserves a real Account section.
+// PAUSED 2026-05-16: /standup is paused on the bot; the Stand-up page is
+// hidden from the sidebar. Route still exists in App.tsx so direct links
+// from old bookmarks don't 404.
 const links = [
   { to: '/daily', label: 'Daily', icon: LayoutGrid },
-  { to: '/standup', label: 'Stand-up', icon: CalendarDays },
+  // { to: '/standup', label: 'Stand-up', icon: CalendarDays },
   { to: '/status', label: 'Status', icon: Circle },
   { to: '/team', label: 'Team', icon: Users },
   { to: '/settings', label: 'Settings', icon: SettingsIcon },

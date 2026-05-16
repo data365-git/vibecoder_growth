@@ -23,11 +23,7 @@ interface Vibecoder {
   tgUsername: string | null;
   active: boolean;
 }
-interface Standup {
-  id: number;
-  vibecoderId: number;
-  standupDate: string;
-}
+// PAUSED 2026-05-16: Standup type + query removed since /standup is off.
 
 const TZ_OFFSET_MS = 5 * 60 * 60 * 1000;
 
@@ -56,22 +52,15 @@ export default function DailyOverview() {
     queryKey: ['reports', 'all'],
     queryFn: () => api<Report[]>(`/reports`),
   });
-  const standups = useQuery({
-    queryKey: ['standup', date],
-    queryFn: () => api<Standup[]>(`/reports/standup/today?date=${date}`),
-  });
 
   const view = useMemo(() => {
     const teamRows = (team.data ?? []).filter((v) => v.active);
     const reportsToday = (reports.data ?? []).filter((r) => r.reportDate === date);
-    const standupsToday = standups.data ?? [];
     const reportByVc = new Map(reportsToday.map((r) => [r.vibecoderId, r] as const));
-    const standupByVc = new Set(standupsToday.map((s) => s.vibecoderId));
 
     let onTime = 0, late = 0, missed = 0, pending = 0;
     const rows = teamRows.map((vc) => {
       const r = reportByVc.get(vc.id);
-      const standupDone = standupByVc.has(vc.id);
       let status: ReportStatus = 'pending';
       if (r && r.submittedAt) {
         status = r.status;
@@ -81,7 +70,7 @@ export default function DailyOverview() {
       } else {
         pending++;
       }
-      return { vc, report: r, standupDone, status };
+      return { vc, report: r, status };
     });
 
     // Sort: missed first, then late, then pending, then on-time. The
@@ -95,7 +84,7 @@ export default function DailyOverview() {
     rows.sort((a, b) => order[a.status] - order[b.status] || a.vc.fullNameRu.localeCompare(b.vc.fullNameRu));
 
     return { rows, counts: { total: teamRows.length, onTime, late, missed, pending } };
-  }, [team.data, reports.data, standups.data, date]);
+  }, [team.data, reports.data, date]);
 
   const visible = view.rows.filter((r) =>
     r.vc.fullNameRu.toLowerCase().includes(search.toLowerCase()),
@@ -141,7 +130,7 @@ export default function DailyOverview() {
           <thead>
             <tr className="text-xs text-muted-foreground border-b border-border/40 bg-muted/30">
               <th className="text-left font-medium px-5 py-2.5">Vibecoder</th>
-              <th className="text-left font-medium px-2 py-2.5">Stand-up</th>
+              {/* Stand-up column hidden while /standup is paused on the bot. */}
               <th className="text-left font-medium px-2 py-2.5">Report</th>
               <th className="text-left font-medium px-2 py-2.5">Proof</th>
               <th className="text-left font-medium px-2 py-2.5">Promise</th>
@@ -150,7 +139,7 @@ export default function DailyOverview() {
             </tr>
           </thead>
           <tbody>
-            {visible.map(({ vc, report, standupDone, status }) => (
+            {visible.map(({ vc, report, status }) => (
               <tr key={vc.id} className="border-b border-border/40 last:border-0 hover:bg-muted/20 transition">
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-3">
@@ -158,17 +147,7 @@ export default function DailyOverview() {
                     <span className="font-medium">{vc.fullNameRu}</span>
                   </div>
                 </td>
-                <td className="px-2 py-3">
-                  {standupDone ? (
-                    <span title="Stand-up сдан" aria-label="Stand-up сдан">
-                      <CheckCircle2 className="h-4 w-4 text-success" />
-                    </span>
-                  ) : (
-                    <span title="Stand-up не сдан" aria-label="Stand-up не сдан">
-                      <XCircle className="h-4 w-4 text-muted-foreground/60" />
-                    </span>
-                  )}
-                </td>
+                {/* Stand-up cell hidden while /standup is paused on the bot. */}
                 <td className="px-2 py-3"><StatusPill status={status} /></td>
                 <td className="px-2 py-3">
                   <span className="inline-flex items-center gap-1 text-muted-foreground tabular-nums">

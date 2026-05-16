@@ -4,7 +4,9 @@ import AppLayout from './layout/AppLayout';
 import Login from './pages/Login';
 import Team from './pages/Team';
 import DailyOverview from './pages/DailyOverview';
-import Standup from './pages/Standup';
+// PAUSED 2026-05-16: /standup is paused on the bot, hidden from the
+// sidebar, and the route is muted. Restore by un-commenting both lines.
+// import Standup from './pages/Standup';
 import StatusGrid from './pages/StatusGrid';
 import WeeklyReview from './pages/WeeklyReview';
 import MonthlyScores from './pages/MonthlyScores';
@@ -31,7 +33,7 @@ export default function App() {
       >
         <Route index element={<Navigate to="/daily" replace />} />
         <Route path="daily" element={<DailyOverview />} />
-        <Route path="standup" element={<Standup />} />
+        {/* PAUSED: <Route path="standup" element={<Standup />} /> */}
         <Route path="status" element={<StatusGrid />} />
         <Route path="team" element={<Team />} />
         <Route path="weekly/:vibecoderId?" element={<WeeklyReview />} />
