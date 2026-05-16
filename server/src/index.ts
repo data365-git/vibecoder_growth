@@ -153,7 +153,7 @@ async function sweepStaleSessions() {
 }
 
 async function main() {
-  console.log('[boot] build marker BC-2026-05-15-A1');
+  console.log('[boot] build marker BC-2026-05-17-PERF');
   await runMigrations();
   await sweepStaleSessions();
   let bot: ReturnType<typeof createBot> | undefined;
