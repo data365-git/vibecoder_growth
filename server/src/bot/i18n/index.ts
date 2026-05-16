@@ -1,18 +1,25 @@
 import type { Conversation } from '@grammyjs/conversations';
 import type { Lang, T } from './types.js';
-import { DEFAULT_LANG, isLang } from './types.js';
-import { ru } from './ru.js';
-import { en } from './en.js';
 import { uz } from './uz.js';
 import type { BotContext } from '../types.js';
+// PAUSED 2026-05-16: only Uzbek is active. The ru/en files remain in the
+// repo. To restore the picker:
+//   1. un-comment the two imports below;
+//   2. change TABLE entries back to { ru, en, uz };
+//   3. un-comment the language-picker logic in bot/index.ts.
+// import { ru } from './ru.js';
+// import { en } from './en.js';
+// import { DEFAULT_LANG, isLang } from './types.js';
 
 export type { Lang, T } from './types.js';
 export { LANGS, DEFAULT_LANG, isLang } from './types.js';
 
-const TABLE: Record<Lang, T> = { ru, en, uz };
+// Every key points at uz while paused, so getT('ru' | 'en' | null) all
+// resolve to Uzbek without touching call sites.
+const TABLE: Record<Lang, T> = { ru: uz, en: uz, uz };
 
-export function getT(lang: Lang | string | null | undefined): T {
-  return isLang(lang) ? TABLE[lang] : TABLE[DEFAULT_LANG];
+export function getT(_lang?: Lang | string | null): T {
+  return TABLE.uz;
 }
 
 // Use outside conversations (where ctx.lang is populated by middleware).

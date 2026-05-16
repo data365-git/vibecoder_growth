@@ -3,67 +3,67 @@ import type { T } from './types.js';
 export const uz: T = {
   // ---------- Greetings / system ----------
   notLinked:
-    'Salom! Seni vibecoderʼlar roʻyxatidan topa olmadim. Menejerdan @username’ingni qoʻshishni soʻrab, qayta urinib koʻr.',
+    'Salom! Sizni vibecoderʼlar roʻyxatidan topa olmadim. Menejerdan @username’ingizni qoʻshishni soʻrab, qayta urinib koʻring.',
   notLinkedWithUsername: (username) =>
     username
-      ? `Salom! Seni vibecoderʼlar roʻyxatidan topa olmadim. Botim sening Telegram username’ingni @${username} deb koʻryapti. Menejerdan Team page’ni ochib, @username’ing aynan shunday yozilganini tekshirishni soʻra. Keyin /start yubor.`
-      : `Salom! Telegram’da @username’ing oʻrnatilmagan — usiz men seni bogʻlay olmayman. Telegram’da Settings → Edit profile’ga kirib, username qoʻy va qayta urinib koʻr.`,
-  // PAUSED 2026-05-16: /standup, /brief, /delivery temporarily disabled.
+      ? `Salom! Sizni vibecoderʼlar roʻyxatidan topa olmadim. Botim Sizning Telegram username’ingizni @${username} deb koʻryapti. Menejerdan Team page’ni ochib, @username’ingiz aynan shunday yozilganini tekshirishni soʻrang. Keyin /start yuboring.`
+      : `Salom! Telegram’da @username’ingiz oʻrnatilmagan — usiz men Sizni bogʻlay olmayman. Telegram’da Settings → Edit profile’ga kirib, username qoʻying va qayta urinib koʻring.`,
+  // PAUSED 2026-05-16: /standup, /brief, /delivery, /settings temporarily disabled.
   linked: (name) =>
-    `Salom, ${name}! 👋\nSen Growth-botga ulandingiz.\n\nQanday ishlaymiz:\n— Sen menga shaxsiyga buyruqlar yozasan.\n— Men hammasini bitta kunlik postga umumiy guruhda jamlayman — menejer kuningni bitta karta sifatida koʻradi.\n\nBuyruqlar:\n⚡ /status — qisqa status: hozir nima ustida ishlayapsan\n📋 /report — kunlik hisobot (18:00 gacha)\n⚙️ /settings — tilni almashtirish\n❌ /cancel — joriy wizard’ni bekor qilish`,
+    `Salom, ${name}! 👋\nSiz Growth-botga ulandingiz.\n\nQanday ishlaymiz:\n— Siz menga shaxsiyga buyruqlar yozasiz.\n— Men hammasini bitta kunlik postga umumiy guruhda jamlayman — menejer kuningizni bitta karta sifatida koʻradi.\n\nBuyruqlar:\n⚡ /status — qisqa status: hozir nima ustida ishlayapsiz\n📋 /report — kunlik hisobot (18:00 gacha)\n❌ /cancel — joriy wizard’ni bekor qilish`,
   cancel: 'Bekor qilindi.',
-  cancelHint: 'Bekor qilish uchun /cancel yoz.',
+  cancelHint: 'Bekor qilish uchun /cancel yozing.',
   done: '✅ Saqlandi.',
   noPermission: 'Faqat menejerlar uchun.',
-  unknownCommand: 'Notanish buyruq. /help yoz.',
-  reminderHint: 'Keyinroq eslataman — 18:00 gacha ulgur.',
+  unknownCommand: 'Notanish buyruq. /help yozing.',
+  reminderHint: 'Keyinroq eslataman — 18:00 gacha ulgurasiz.',
 
   // ---------- Language picker / settings ----------
   chooseLanguage: 'Выбери язык / Choose language / Tilni tanlang:',
   languageChanged: '✅ Til saqlandi.',
-  settingsTitle: '⚙️ Sozlamalar — tilni tanla:',
+  settingsTitle: '⚙️ Sozlamalar — tilni tanlang:',
   langButtonRu: '🇷🇺 Русский',
   langButtonEn: '🇬🇧 English',
   langButtonUz: '🇺🇿 O‘zbekcha',
 
   // ---------- Daily report ----------
-  reportStart: '📋 Daily report. Senga 7 ta qisqa savol beraman.\n\n1/7 — Bugun nima ustida ishlading? (qisqa vazifalar roʻyxati)',
-  reportQ2: '2/7 — Bugun nimani yakunlading?',
+  reportStart: '📋 Daily report. Sizga 7 ta qisqa savol beraman.\n\n1/7 — Bugun nima ustida ishladingiz? (qisqa vazifalar roʻyxati)',
+  reportQ2: '2/7 — Bugun nimani yakunladingiz?',
   reportQ3: '3/7 — Nima jarayonda qoldi?',
-  reportQ4: '4/7 — Blocker’lar bormi? (agar yoʻq boʻlsa — "yoʻq" deb yoz)',
-  reportQ5: '5/7 — Ertaga nima qilishni rejalashtiryapsan?',
-  reportQ6: '6/7 — Link / screenshot / video-demo yubor (yoki "yoʻq")',
-  reportQ7: '7/7 — Ertalabki stand-up’da vaʼda qilganingni bajardingmi? (ha / yoʻq / qisman)',
+  reportQ4: '4/7 — Blocker’lar bormi? (agar yoʻq boʻlsa — "yoʻq" deb yozing)',
+  reportQ5: '5/7 — Ertaga nima qilishni rejalashtiryapsiz?',
+  reportQ6: '6/7 — Link / screenshot / video-demo yuboring (yoki "yoʻq")',
+  reportQ7: '7/7 — Ertalabki stand-up’da vaʼda qilganingizni bajardingizmi? (ha / yoʻq / qisman)',
   reportLate: '⚠️ Hisobot qabul qilindi, lekin 18:00 dan keyin — late belgisi qoʻyildi.',
-  reportClosed: '❌ Daily report oynasi yopildi (18:00 dan keyin). Kechikkan hisobotni rasmiylashtirish uchun menejer bilan gaplash.',
-  reportAlready: 'Sen bugun daily report’ni yuborgansan.',
+  reportClosed: '❌ Daily report oynasi yopildi (18:00 dan keyin). Kechikkan hisobotni rasmiylashtirish uchun menejer bilan gaplashing.',
+  reportAlready: 'Siz bugun daily report’ni yuborgansiz.',
 
   // ---------- Standup ----------
-  standupStart: '☀️ Daily stand-up. 5 ta savol.\n\n1/5 — Kecha nimani yakunlading?',
-  standupQ2: '2/5 — Bugun nimani yakunlaysan?',
+  standupStart: '☀️ Daily stand-up. 5 ta savol.\n\n1/5 — Kecha nimani yakunladingiz?',
+  standupQ2: '2/5 — Bugun nimani yakunlaysiz?',
   standupQ3: '3/5 — Bugungi asosiy deadline qaysi?',
   standupQ4: '4/5 — Blocker bormi? (yoki "yoʻq")',
-  standupQ5: '5/5 — Kun oxiriga qanday aniq natija koʻrsatasan?',
+  standupQ5: '5/5 — Kun oxiriga qanday aniq natija koʻrsatasiz?',
   standupAlready: 'Bugungi stand-up allaqachon yuborilgan.',
 
   // ---------- Status ----------
-  statusStart: '⚡ Status update. 5 ta qisqa savol.\n\n1/5 — Hozir qaysi vazifa ustida ishlayapsan?',
-  statusQ2: '2/5 — Oxirgi update’dan beri nima qilding?',
-  statusQ3: '3/5 — Aynan hozir nima qilyapsan?',
+  statusStart: '⚡ Status update. 5 ta qisqa savol.\n\n1/5 — Hozir qaysi vazifa ustida ishlayapsiz?',
+  statusQ2: '2/5 — Oxirgi update’dan beri nima qildingiz?',
+  statusQ3: '3/5 — Aynan hozir nima qilyapsiz?',
   statusQ4: '4/5 — Blocker bormi? (yoki "yoʻq")',
-  statusQ5: '5/5 — Deadline’ga ulguryapsanmi? (ha / yoʻq)',
+  statusQ5: '5/5 — Deadline’ga ulguryapsizmi? (ha / yoʻq)',
 
   // ---------- Design ----------
-  designStart: '🎨 Design reference.\n\n1/4 — Link yubor (Pinterest, Dribbble, Mobbin, etc.)',
-  designQ2: '2/4 — Rasm yubor (tasvir) — yoki "oʻtkazib yuborish" deb yoz.',
-  designQ3: '3/4 — Kamida 3 ta kuzatuv. Har birini alohida qatorda yoz, 3-chisidan keyin /next buyrugʻini yubor. Yoki 3+ tasini bir martada qator tashlash bilan yubor.',
-  designQ4: '4/4 — Buni qayerda qoʻllaysan yoki allaqachon qoʻlladingmi? (vazifa nomi yoki "hali yoʻq")',
+  designStart: '🎨 Design reference.\n\n1/4 — Link yuboring (Pinterest, Dribbble, Mobbin, etc.)',
+  designQ2: '2/4 — Rasm yuboring (tasvir) — yoki "oʻtkazib yuborish" deb yozing.',
+  designQ3: '3/4 — Kamida 3 ta kuzatuv. Har birini alohida qatorda yozing, 3-chisidan keyin /next buyrugʻini yuboring. Yoki 3+ tasini bir martada qator tashlash bilan yuboring.',
+  designQ4: '4/4 — Buni qayerda qoʻllaysiz yoki allaqachon qoʻlladingizmi? (vazifa nomi yoki "hali yoʻq")',
   designNeedThree: 'Kamida 3 ta kuzatuv kerak. Hozir:',
 
   // ---------- Business ----------
   businessStart: '💼 Business note.\n\n1/8 — Manbaga link (podcast / interview / video)',
   businessQ2: '2/8 — Turi: podcast / video / interview / article / other',
-  businessQ3: '3/8 — 5 ta asosiy biznes-insight. Hammasini qator tashlash bilan yubor.',
+  businessQ3: '3/8 — 5 ta asosiy biznes-insight. Hammasini qator tashlash bilan yuboring.',
   businessQ4: '4/8 — Bu CRM / ERP / automation bilan qanday bogʻliq?',
   businessQ5: '5/8 — Mijozning qanday ogʻrigʻini tushunishga yordam beradi?',
   businessQ6: '6/8 — Qanday yechim qurish mumkin edi?',
@@ -73,7 +73,7 @@ export const uz: T = {
   learningStart: '📚 Professional learning.\n\n1/5 — Manbaga link',
   learningQ2: '2/5 — Qisqa mavzu (1–5 soʻz)',
   learningQ3: '3/5 — 3 ta asosiy fikr (qator tashlash bilan)',
-  learningQ4: '4/5 — Buni ishda qanday qoʻllaysan?',
+  learningQ4: '4/5 — Buni ishda qanday qoʻllaysiz?',
   learningQ5: '5/5 — Sinab koʻradigan bitta amal?',
   learningNeedThree: '3 ta fikr kerak. Hozir:',
 
@@ -88,19 +88,19 @@ export const uz: T = {
   bookQ2: '2/5 — Asosiy gʻoya oddiy soʻzlar bilan',
   bookQ3: '3/5 — 5 ta foydali fikr (qator tashlash bilan)',
   bookQ4: '4/5 — Kitob yaxshiroq fikrlash yoki muloqot qilishga qanday yordam beradi?',
-  bookQ5: '5/5 — Buni ishda qanday qoʻllaysan?',
+  bookQ5: '5/5 — Buni ishda qanday qoʻllaysiz?',
   bookAlready: 'Bu oy uchun reflection allaqachon bor.',
   bookNeedFive: '5 ta fikr kerak. Hozir:',
 
   // ---------- Brief ----------
   briefStart: '📐 Task ownership brief.\n\n1/7 — Vazifa nomi',
-  briefQ2: '2/7 — Vazifani qanday tushunding?',
+  briefQ2: '2/7 — Vazifani qanday tushundingiz?',
   briefQ3: '3/7 — Kutilayotgan yakuniy natija qanday?',
   briefQ4: '4/7 — User flow qanday?',
   briefQ5: '5/7 — Qadamlar (qator tashlash bilan)',
   briefQ6: '6/7 — Deadline (masalan: 2026-05-16 18:00 yoki "ertaga 17:00")',
   briefQ7: '7/7 — Risklar va ochiq savollar (yoki "yoʻq")',
-  briefSavedHint: (id) => `Brief id: #${id}\nVazifa tayyor boʻlganda yubor: /delivery ${id}`,
+  briefSavedHint: (id) => `Brief id: #${id}\nVazifa tayyor boʻlganda yuboring: /delivery ${id}`,
 
   // ---------- Delivery ----------
   deliveryStart: (id) => `📦 Final delivery — brief #${id} uchun.\n\n1/7 — Nima qilindi?`,
@@ -110,7 +110,7 @@ export const uz: T = {
   deliveryQ5: '5/7 — Video demo (link) yoki "yoʻq"',
   deliveryQ6: '6/7 — Qaysi edge cases tekshirildi?',
   deliveryQ7: '7/7 — Known issues + keyinroq nimani yaxshilash kerak (yoki "yoʻq")',
-  deliveryBriefNotFound: 'Brief topilmadi yoki seniki emas.',
+  deliveryBriefNotFound: 'Brief topilmadi yoki Sizniki emas.',
   deliveryUsage: 'Foydalanish: /delivery <briefId>',
 
   // ---------- Offline mode ----------
@@ -121,12 +121,12 @@ export const uz: T = {
 
   // ---------- Wrong-topic nudge ----------
   wrongTopicNudge: (cmd) =>
-    `👀 Bu topikka erkin matn yozma — maʼlumotlar yoʻqoladi. Meni shaxsiyda ochib ${cmd} buyrugʻini yubor. Yozuvni kerakli topikka oʻzim joylayman va sening isming bilan imzolayman.`,
+    `👀 Bu topikka erkin matn yozmang — maʼlumotlar yoʻqoladi. Meni shaxsiyda ochib ${cmd} buyrugʻini yuboring. Yozuvni kerakli topikka oʻzim joylayman va Sizning ismingiz bilan imzolayman.`,
 
   // ---------- Helper prompts ----------
-  helperPleaseSendText: 'Iltimos, matn yubor.',
-  helperHttpLinkNeeded: 'http(s):// koʻrinishdagi link kerak. Yana urinib koʻr.',
-  helperNeedMore: (have, need) => `${have}/${need}. Yana urinib koʻr.`,
+  helperPleaseSendText: 'Iltimos, matn yuboring.',
+  helperHttpLinkNeeded: 'http(s):// koʻrinishdagi link kerak. Yana urinib koʻring.',
+  helperNeedMore: (have, need) => `${have}/${need}. Yana urinib koʻring.`,
 
   // ---------- Inline wizard fragments ----------
   briefNeedAtLeastOneStep: 'Kamida 1 ta qadam kerak.',
@@ -134,6 +134,6 @@ export const uz: T = {
   deliveryLate: '⚠️ Deadlinedan keyin.',
 
   // ---------- Scheduler DMs ----------
-  nudgeReportSoft: '💡 Eslatma: 18:00 gacha /report yubor.',
-  nudgeReportFinal: '⏰ Oyna yopilishiga 30 daqiqa qoldi. Hozir /report yubor.',
+  nudgeReportSoft: '💡 Eslatma: 18:00 gacha /report yuboring.',
+  nudgeReportFinal: '⏰ Oyna yopilishiga 30 daqiqa qoldi. Hozir /report yuboring.',
 };

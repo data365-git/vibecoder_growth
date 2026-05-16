@@ -4,13 +4,15 @@ import { eq, and, sql, isNull } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import * as s from '../db/schema/growth.js';
 import { env } from '../env.js';
-import { getT, tFor, isLang } from './i18n/index.js';
-import type { Lang } from './i18n/types.js';
+import { tFor } from './i18n/index.js';
+// PAUSED 2026-05-16 — language picker disabled, only Uzbek is active.
+// import { getT, isLang } from './i18n/index.js';
+// import type { Lang } from './i18n/types.js';
+// import { sendLanguagePicker, persistLanguage } from './language.js';
 import type { BotContext, SessionData } from './types.js';
 import { PgSessionStorage } from './session-storage.js';
 import { resolveIdentity } from './middlewares/auth.js';
 import { mainMenu, managerMenu } from './keyboards.js';
-import { sendLanguagePicker, persistLanguage } from './language.js';
 import { reportConversation } from './wizards/report.js';
 import { standupConversation } from './wizards/standup.js';
 import { statusConversation } from './wizards/status.js';
@@ -18,50 +20,26 @@ import { briefConversation } from './wizards/brief.js';
 import { deliveryConversation } from './wizards/delivery.js';
 import { startOfflineMode, endOfflineMode } from './wizards/offline.js';
 
-// Localised command pickers, registered per Telegram client language. Telegram
-// matches by the user's app language (`language_code`), not by our stored
-// preference — so this only affects the "/" autocomplete popup, not the
-// content of replies. Replies use ctx.lang.
-// PAUSED 2026-05-16: /standup, /brief, /delivery hidden from the picker.
-const COMMAND_PICKER: Record<Lang, Array<{ command: string; description: string }>> = {
-  ru: [
-    { command: 'status', description: 'Короткий статус — над чем работаешь сейчас' },
-    { command: 'report', description: 'Отчёт за день (до 18:00)' },
-    { command: 'settings', description: 'Сменить язык' },
-    { command: 'cancel', description: 'Отменить текущий wizard' },
-    { command: 'help', description: 'Подсказка по командам' },
-  ],
-  en: [
-    { command: 'status', description: 'Quick status — what you are working on now' },
-    { command: 'report', description: 'Daily report (before 18:00)' },
-    { command: 'settings', description: 'Change language' },
-    { command: 'cancel', description: 'Cancel the current wizard' },
-    { command: 'help', description: 'Command hints' },
-  ],
-  uz: [
-    { command: 'status', description: 'Qisqa status — hozir nima ustida ishlayapsan' },
-    { command: 'report', description: 'Kunlik hisobot (18:00 gacha)' },
-    { command: 'settings', description: 'Tilni almashtirish' },
-    { command: 'cancel', description: 'Joriy wizardni bekor qilish' },
-    { command: 'help', description: 'Komandalar boʻyicha ipucha' },
-  ],
-};
+// Telegram "/" autocomplete entries. While the picker is paused, only the
+// Uzbek scope is registered — see PAUSED note above.
+// PAUSED 2026-05-16: /standup, /brief, /delivery, /settings hidden from the picker.
+const COMMAND_PICKER_UZ: Array<{ command: string; description: string }> = [
+  { command: 'status', description: 'Qisqa status — hozir nima ustida ishlayapsiz' },
+  { command: 'report', description: 'Kunlik hisobot (18:00 gacha)' },
+  { command: 'cancel', description: 'Joriy wizardni bekor qilish' },
+  { command: 'help', description: 'Komandalar boʻyicha yordam' },
+];
 
 export function createBot(): Bot<BotContext> {
   if (!env.GROWTH_BOT_TOKEN) throw new Error('GROWTH_BOT_TOKEN not set');
   const bot = new Bot<BotContext>(env.GROWTH_BOT_TOKEN);
 
-  // Register command suggestions in Telegram's UI. ru is the default scope;
-  // en + uz are language-scoped overrides. Fire-and-forget — if Telegram is
-  // briefly unreachable it's not worth crashing startup over.
-  bot.api.setMyCommands(COMMAND_PICKER.ru).catch((e) => {
-    console.warn('[bot] setMyCommands(default) failed:', e);
-  });
-  bot.api.setMyCommands(COMMAND_PICKER.en, { language_code: 'en' }).catch((e) => {
-    console.warn('[bot] setMyCommands(en) failed:', e);
-  });
-  bot.api.setMyCommands(COMMAND_PICKER.uz, { language_code: 'uz' }).catch((e) => {
-    console.warn('[bot] setMyCommands(uz) failed:', e);
+  // Register command suggestions. While the picker is paused we only push
+  // the Uzbek list, on the default scope, so every Telegram client sees it.
+  // Fire-and-forget — if Telegram is briefly unreachable it's not worth
+  // crashing startup over.
+  bot.api.setMyCommands(COMMAND_PICKER_UZ).catch((e) => {
+    console.warn('[bot] setMyCommands failed:', e);
   });
 
   bot.use(
@@ -89,39 +67,32 @@ export function createBot(): Bot<BotContext> {
   // bot.use(createConversation(briefConversation, 'brief'));
   // bot.use(createConversation(deliveryConversation, 'delivery'));
 
-  // Inline-keyboard callback: `setlang:<lang>`. Fires from the language
-  // picker shown on first /start and from /settings.
-  bot.callbackQuery(/^setlang:(ru|en|uz)$/, async (ctx) => {
-    const lang = (ctx.match?.[1] ?? '') as Lang;
-    if (!isLang(lang)) {
-      await ctx.answerCallbackQuery();
-      return;
-    }
-    await persistLanguage(ctx, lang);
-    const t = getT(lang);
-    await ctx.answerCallbackQuery({ text: t.languageChanged });
-    // Replace the picker so a user can't double-click and confuse themselves.
-    try {
-      await ctx.editMessageReplyMarkup(undefined);
-    } catch {
-      /* picker may already be gone if user used /settings twice */
-    }
-    // Resolve display name for the greeting; both rows may exist.
-    let name = '';
-    if (ctx.vibecoderId) {
-      const [vc] = await db.select().from(s.vibecoders).where(eq(s.vibecoders.id, ctx.vibecoderId));
-      name = vc?.fullNameRu ?? '';
-    } else if (ctx.managerId) {
-      const [mgr] = await db.select().from(s.growthManagers).where(eq(s.growthManagers.id, ctx.managerId));
-      name = mgr?.fullNameRu ?? '';
-    }
-    if (ctx.vibecoderId || ctx.isManager) {
-      await ctx.reply(t.linked(name), { reply_markup: ctx.isManager ? managerMenu : mainMenu });
-    }
-  });
+  // PAUSED 2026-05-16 — language picker callback. The handler is kept (as a
+  // comment) so we can re-enable it by un-commenting + restoring the
+  // language/getT imports above.
+  // bot.callbackQuery(/^setlang:(ru|en|uz)$/, async (ctx) => {
+  //   const lang = (ctx.match?.[1] ?? '') as Lang;
+  //   if (!isLang(lang)) { await ctx.answerCallbackQuery(); return; }
+  //   await persistLanguage(ctx, lang);
+  //   const t = getT(lang);
+  //   await ctx.answerCallbackQuery({ text: t.languageChanged });
+  //   try { await ctx.editMessageReplyMarkup(undefined); } catch { /* noop */ }
+  //   let name = '';
+  //   if (ctx.vibecoderId) {
+  //     const [vc] = await db.select().from(s.vibecoders).where(eq(s.vibecoders.id, ctx.vibecoderId));
+  //     name = vc?.fullNameRu ?? '';
+  //   } else if (ctx.managerId) {
+  //     const [mgr] = await db.select().from(s.growthManagers).where(eq(s.growthManagers.id, ctx.managerId));
+  //     name = mgr?.fullNameRu ?? '';
+  //   }
+  //   if (ctx.vibecoderId || ctx.isManager) {
+  //     await ctx.reply(t.linked(name), { reply_markup: ctx.isManager ? managerMenu : mainMenu });
+  //   }
+  // });
 
-  // /start — link by username if needed, then either prompt for a language
-  // (first ever interaction) or send the localised welcome.
+  // /start — link by username if needed, then send the Uzbek welcome. While
+  // the picker is paused we silently stamp lang='uz' on any newly-linked row
+  // so DB analytics stay consistent with what users actually see.
   bot.command('start', async (ctx) => {
     const username = ctx.from?.username?.toLowerCase();
     const tgId = ctx.from?.id;
@@ -132,10 +103,12 @@ export function createBot(): Bot<BotContext> {
         .from(s.growthManagers)
         .where(and(eq(sql`lower(${s.growthManagers.tgUsername})`, username), isNull(s.growthManagers.tgUserId)));
       if (mgr) {
-        await db.update(s.growthManagers).set({ tgUserId: BigInt(tgId) }).where(eq(s.growthManagers.id, mgr.id));
+        await db
+          .update(s.growthManagers)
+          .set({ tgUserId: BigInt(tgId), lang: mgr.lang ?? 'uz' })
+          .where(eq(s.growthManagers.id, mgr.id));
         ctx.managerId = mgr.id;
         ctx.isManager = true;
-        if (isLang(mgr.lang)) ctx.lang = mgr.lang;
       }
     }
 
@@ -145,24 +118,20 @@ export function createBot(): Bot<BotContext> {
         .from(s.vibecoders)
         .where(and(eq(sql`lower(${s.vibecoders.tgUsername})`, username), eq(s.vibecoders.active, true)));
       if (vc) {
-        await db.update(s.vibecoders).set({ tgUserId: BigInt(tgId) }).where(eq(s.vibecoders.id, vc.id));
+        await db
+          .update(s.vibecoders)
+          .set({ tgUserId: BigInt(tgId), lang: vc.lang ?? 'uz' })
+          .where(eq(s.vibecoders.id, vc.id));
         ctx.vibecoderId = vc.id;
-        if (!ctx.lang && isLang(vc.lang)) ctx.lang = vc.lang;
       }
     }
 
+    const t = tFor(ctx);
     if (!ctx.vibecoderId && !ctx.isManager) {
-      const t = tFor(ctx);
       await ctx.reply(t.notLinkedWithUsername(ctx.from?.username));
       return;
     }
 
-    if (!ctx.lang) {
-      await sendLanguagePicker(ctx, 'first');
-      return;
-    }
-
-    const t = tFor(ctx);
     let name = '';
     if (ctx.vibecoderId) {
       const [vc] = await db.select().from(s.vibecoders).where(eq(s.vibecoders.id, ctx.vibecoderId));
@@ -174,14 +143,15 @@ export function createBot(): Bot<BotContext> {
     await ctx.reply(t.linked(name), { reply_markup: ctx.isManager ? managerMenu : mainMenu });
   });
 
-  bot.command('settings', async (ctx) => {
-    if (!ctx.vibecoderId && !ctx.isManager) {
-      const t = tFor(ctx);
-      await ctx.reply(t.notLinkedWithUsername(ctx.from?.username));
-      return;
-    }
-    await sendLanguagePicker(ctx, 'settings');
-  });
+  // PAUSED 2026-05-16 — /settings is hidden while only Uzbek is active.
+  // bot.command('settings', async (ctx) => {
+  //   if (!ctx.vibecoderId && !ctx.isManager) {
+  //     const t = tFor(ctx);
+  //     await ctx.reply(t.notLinkedWithUsername(ctx.from?.username));
+  //     return;
+  //   }
+  //   await sendLanguagePicker(ctx, 'settings');
+  // });
 
   bot.command('help', async (ctx) => {
     const t = tFor(ctx);
@@ -207,10 +177,6 @@ export function createBot(): Bot<BotContext> {
   const enter = (name: string) => async (ctx: BotContext) => {
     const t = tFor(ctx);
     if (!ctx.vibecoderId) return ctx.reply(t.notLinkedWithUsername(ctx.from?.username));
-    if (!ctx.lang) {
-      await sendLanguagePicker(ctx, 'first');
-      return;
-    }
     await ctx.conversation.exitAll();
     await ctx.conversation.enter(name);
   };
@@ -251,9 +217,13 @@ export function createBot(): Bot<BotContext> {
       else if (r.status === 'late') late++;
       else missed++;
     }
-    await ctx.reply(
-      `📅 ${ymd}\nOn-time: ${onTime}\nLate: ${late}\nPending/Missed: ${none + missed} of ${vcs.length}`,
-    );
+    const summary = [
+      `📅 <b>${ymd}</b>`,
+      `Vaqtida: ${onTime}`,
+      `Kechikkan: ${late}`,
+      `Yuborilmagan/Kutilmoqda: ${none + missed} / ${vcs.length}`,
+    ].join('\n');
+    await ctx.reply(summary, { parse_mode: 'HTML' });
   });
 
   bot.catch((err) => {

@@ -14,6 +14,8 @@ import { env } from '../env.js';
 // keeps the day-range math obvious and reliable. If the company ever
 // supports another TZ this becomes a per-vibecoder setting.
 const TZ_OFFSET = '+05:00';
+const TZ_OFFSET_MS = 5 * 60 * 60 * 1000;
+const DIVIDER = '━━━━━━━━━━━━━━━━━━━━';
 
 function dayRange(ymd: string): { start: Date; end: Date } {
   const start = new Date(`${ymd}T00:00:00${TZ_OFFSET}`);
@@ -25,8 +27,6 @@ function dayRange(ymd: string): { start: Date; end: Date } {
 // We avoid toLocaleString→new Date() because when TZ=Asia/Tashkent is set in
 // the process env, Node treats the locale string as local (Tashkent) time,
 // then toISOString() converts back to UTC — resulting in the wrong time shown.
-const TZ_OFFSET_MS = 5 * 60 * 60 * 1000;
-
 function hm(d: Date): string {
   return new Date(d.getTime() + TZ_OFFSET_MS).toISOString().slice(11, 16);
 }
@@ -36,11 +36,24 @@ function ymdHm(d: Date): string {
   return `${s.slice(0, 10)} ${s.slice(11, 16)}`;
 }
 
+// Telegram HTML mode needs &, <, > escaped. The bot uses parse_mode:'HTML'
+// so we can bold section headers without the MarkdownV2 escaping hell.
+function esc(value: string | null | undefined): string {
+  if (!value) return '';
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function statusBadge(report: typeof s.dailyReports.$inferSelect | undefined): string {
-  if (!report || !report.submittedAt) return '⏳ pending';
-  if (report.status === 'on_time') return '✅ on-time';
-  if (report.status === 'late') return '⚠️ late';
-  return '❌ missed';
+  if (!report || !report.submittedAt) return '⏳ Kutilmoqda';
+  if (report.status === 'on_time') return '✅ Vaqtida';
+  if (report.status === 'late') return '⚠️ Kechikkan';
+  return '❌ Yuborilmagan';
+}
+
+function promiseLabel(kept: boolean | null | undefined): string {
+  if (kept === true) return '✅ ha';
+  if (kept === false) return '❌ yoʻq';
+  return '◐ qisman';
 }
 
 async function renderCard(vibecoderId: number, ymd: string): Promise<string> {
@@ -102,60 +115,69 @@ async function renderCard(vibecoderId: number, ymd: string): Promise<string> {
     : [];
 
   const lines: string[] = [];
-  lines.push(`📅 ${ymd} · ${name} · ${statusBadge(report)}`);
-  lines.push('');
+
+  // Header — date, name (bold), status badge.
+  lines.push(`📅 <b>${ymd}</b> · <b>${esc(name)}</b>`);
+  lines.push(statusBadge(report));
+  lines.push(DIVIDER);
 
   if (standup) {
-    lines.push(`☀️ Stand-up · ${hm(standup.submittedAt)}`);
-    lines.push(`Вчера: ${standup.completedYesterday}`);
-    lines.push(`Сегодня: ${standup.willCompleteToday}`);
-    lines.push(`Deadline: ${standup.mainDeadline ?? '-'}`);
-    lines.push(`Blocker: ${standup.blocker ?? 'нет'}`);
-    lines.push(`EOD: ${standup.endOfDayDeliverable}`);
     lines.push('');
+    lines.push(`☀️ <b>STAND-UP</b> · ${hm(standup.submittedAt)}`);
+    lines.push(`Kecha: ${esc(standup.completedYesterday)}`);
+    lines.push(`Bugun: ${esc(standup.willCompleteToday)}`);
+    lines.push(`Deadline: ${esc(standup.mainDeadline) || '—'}`);
+    lines.push(`Blocker: ${esc(standup.blocker) || 'yoʻq'}`);
+    lines.push(`Kun yakuni: ${esc(standup.endOfDayDeliverable)}`);
   }
 
   for (const st of statuses) {
-    const parts = [
-      `⚡ ${hm(st.sentAt)}`,
-      st.currentTask,
-      `сейчас: ${st.doingNow ?? '-'}`,
-      `blocker: ${st.blocker ?? 'нет'}`,
-      `в срок: ${st.onTrack ? '✅' : '❌'}`,
-    ];
-    lines.push(parts.join(' · '));
+    lines.push('');
+    lines.push(`⚡ <b>STATUS</b> · ${hm(st.sentAt)}`);
+    lines.push(`Vazifa: ${esc(st.currentTask)}`);
+    if (st.sinceLast) lines.push(`Oxirgi update’dan: ${esc(st.sinceLast)}`);
+    lines.push(`Hozir: ${esc(st.doingNow) || '—'}`);
+    lines.push(`Blocker: ${esc(st.blocker) || 'yoʻq'}`);
+    lines.push(`Vaqtida: ${st.onTrack ? '✅ ha' : '❌ yoʻq'}`);
   }
-  if (statuses.length > 0) lines.push('');
 
   if (report?.submittedAt) {
-    lines.push(`📋 Report · ${hm(report.submittedAt)}${report.status === 'late' ? ' · LATE' : ''}`);
-    lines.push(`Сделал: ${report.didToday}`);
-    if (report.completed) lines.push(`Завершил: ${report.completed}`);
-    if (report.inProgress) lines.push(`В процессе: ${report.inProgress}`);
-    lines.push(`Blockers: ${report.blockers ?? 'нет'}`);
-    if (report.plansTomorrow) lines.push(`Завтра: ${report.plansTomorrow}`);
-    const proofs = Array.isArray(report.proofLinks) ? (report.proofLinks as string[]) : [];
-    if (proofs.length > 0) lines.push(`Proof: ${proofs.join(' · ')}`);
-    lines.push(
-      `Promise: ${report.keptPromise === true ? '✅' : report.keptPromise === false ? '❌' : '~частично'}`,
-    );
     lines.push('');
+    const lateTag = report.status === 'late' ? ' · <b>LATE</b>' : '';
+    lines.push(`📋 <b>HISOBOT</b> · ${hm(report.submittedAt)}${lateTag}`);
+    lines.push(`Bajarilgan: ${esc(report.didToday)}`);
+    if (report.completed) lines.push(`Yakunlangan: ${esc(report.completed)}`);
+    if (report.inProgress) lines.push(`Jarayonda: ${esc(report.inProgress)}`);
+    lines.push(`Blocker: ${esc(report.blockers) || 'yoʻq'}`);
+    if (report.plansTomorrow) lines.push(`Ertaga: ${esc(report.plansTomorrow)}`);
+    const proofs = Array.isArray(report.proofLinks) ? (report.proofLinks as string[]) : [];
+    if (proofs.length > 0) lines.push(`Proof: ${proofs.map(esc).join(' · ')}`);
+    lines.push(`Vaʼda: ${promiseLabel(report.keptPromise)}`);
   }
 
-  for (const b of briefsToday) {
-    lines.push(`📐 Brief #${b.id} · ${b.taskTitle} · self-deadline: ${ymdHm(b.selfDeadline)}`);
+  if (briefsToday.length > 0) {
+    lines.push('');
+    lines.push(`📐 <b>BRIEFS</b>`);
+    for (const b of briefsToday) {
+      lines.push(`#${b.id} · ${esc(b.taskTitle)} · deadline ${ymdHm(b.selfDeadline)}`);
+    }
   }
 
-  for (const d of deliveriesToday) {
-    const brief = briefById.get(d.briefId);
-    const tag = brief?.onTime === true ? '✅ в срок' : brief?.onTime === false ? '⚠️ позже дедлайна' : '';
-    lines.push(`📦 Delivery · brief #${d.briefId}${brief ? ` · ${brief.title}` : ''}${tag ? ` · ${tag}` : ''}`);
+  if (deliveriesToday.length > 0) {
+    lines.push('');
+    lines.push(`📦 <b>DELIVERIES</b>`);
+    for (const d of deliveriesToday) {
+      const brief = briefById.get(d.briefId);
+      const tag = brief?.onTime === true ? '✅ vaqtida' : brief?.onTime === false ? '⚠️ kechikkan' : '';
+      const title = brief ? ` · ${esc(brief.title)}` : '';
+      lines.push(`#${d.briefId}${title}${tag ? ` · ${tag}` : ''}`);
+    }
   }
 
   // Telegram caps a single message at 4096 chars. Truncate defensively;
   // in practice a real day for one person won't hit it.
   const text = lines.join('\n');
-  return text.length > 3900 ? text.slice(0, 3900) + '\n…(обрезано)' : text;
+  return text.length > 3900 ? text.slice(0, 3900) + '\n…(qisqartirildi)' : text;
 }
 
 export async function upsertDailyCard(api: Api, vibecoderId: number, ymd: string): Promise<void> {
@@ -171,7 +193,10 @@ export async function upsertDailyCard(api: Api, vibecoderId: number, ymd: string
 
   if (existing) {
     try {
-      await api.editMessageText(chatId, Number(existing.messageId), text);
+      await api.editMessageText(chatId, Number(existing.messageId), text, {
+        parse_mode: 'HTML',
+        link_preview_options: { is_disabled: true },
+      });
       await db
         .update(s.dailyCards)
         .set({ updatedAt: new Date() })
@@ -184,7 +209,10 @@ export async function upsertDailyCard(api: Api, vibecoderId: number, ymd: string
   }
 
   try {
-    const sent = await api.sendMessage(chatId, text);
+    const sent = await api.sendMessage(chatId, text, {
+      parse_mode: 'HTML',
+      link_preview_options: { is_disabled: true },
+    });
     await db
       .insert(s.dailyCards)
       .values({

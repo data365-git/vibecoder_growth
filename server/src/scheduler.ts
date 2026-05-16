@@ -150,9 +150,19 @@ export function startScheduler(bot: Bot<BotContext>) {
         const onTime = [...submitted.values()].filter((r) => r.status === 'on_time').length;
         const late = [...submitted.values()].filter((r) => r.status === 'late').length;
         const missing = vcs.length - submitted.size;
-        const summary = `📊 Daily summary · ${ymd}\nOn-time: ${onTime}\nLate: ${late}\nMissed: ${missing}\nИтого активных: ${vcs.length}`;
+        const summary = [
+          `📊 <b>Kunlik yakun</b> · ${ymd}`,
+          '━━━━━━━━━━━━━━━━━━━━',
+          `Vaqtida: ${onTime}`,
+          `Kechikkan: ${late}`,
+          `Yuborilmagan: ${missing}`,
+          `Jami faol: ${vcs.length}`,
+        ].join('\n');
         try {
-          await bot.api.sendMessage(summaryChat, summary);
+          await bot.api.sendMessage(summaryChat, summary, {
+            parse_mode: 'HTML',
+            link_preview_options: { is_disabled: true },
+          });
         } catch (e) {
           /* noop */
         }
