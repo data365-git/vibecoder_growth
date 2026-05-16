@@ -159,11 +159,13 @@ export default function DailyOverview() {
                   </div>
                 </td>
                 <td className="px-2 py-3">
-                  {standupDone ? (
-                    <CheckCircle2 className="h-4 w-4 text-success" title="Stand-up сдан" />
-                  ) : (
-                    <XCircle className="h-4 w-4 text-muted-foreground/60" title="Stand-up не сдан" />
-                  )}
+                  <span title={standupDone ? 'Stand-up сдан' : 'Stand-up не сдан'}>
+                    {standupDone ? (
+                      <CheckCircle2 className="h-4 w-4 text-success" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-muted-foreground/60" />
+                    )}
+                  </span>
                 </td>
                 <td className="px-2 py-3"><StatusPill status={status} /></td>
                 <td className="px-2 py-3">

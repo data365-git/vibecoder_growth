@@ -187,7 +187,7 @@ export default function TeamPerformance() {
         />
         <MetricCard
           label="Best Performer"
-          value={best.name.split(' ')[0]}
+          value={best.name.split(' ')[0] ?? best.name}
           sub={`${best.periodPercent}%`}
           icon={<Award className="h-4 w-4 text-primary" />}
           tint="bg-primary-soft"
