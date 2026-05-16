@@ -68,14 +68,15 @@ async function dmIf(
 }
 
 export function startScheduler(bot: Bot<BotContext>) {
+  // PAUSED 2026-05-16 — re-enable when /standup returns.
   // 09:00 Mon-Sat — stand-up reminder
-  cron.schedule(
-    '0 9 * * 1-6',
-    async () => {
-      await dmAll(bot, '☀️ Доброе утро! /standup — 5 коротких вопросов перед началом дня.', { kind: 'standup' });
-    },
-    { timezone: TZ },
-  );
+  // cron.schedule(
+  //   '0 9 * * 1-6',
+  //   async () => {
+  //     await dmAll(bot, '☀️ Доброе утро! /standup — 5 коротких вопросов перед началом дня.', { kind: 'standup' });
+  //   },
+  //   { timezone: TZ },
+  // );
 
   // 12:00 Mon-Sat — soft report nudge (only if no report yet)
   cron.schedule(

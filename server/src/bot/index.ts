@@ -19,12 +19,16 @@ import { startOfflineMode, endOfflineMode } from './wizards/offline.js';
 // One-line descriptions shown in the Telegram client's command picker
 // (the menu that pops up when a user types "/"). Keep them short and
 // action-oriented so a new vibecoder can self-onboard without docs.
+// PAUSED 2026-05-16: /standup, /brief, /delivery hidden from the command
+// picker. Wizards, schema, and daily-card rendering remain intact so we can
+// re-enable them later by un-commenting the lines below + the handlers and
+// conversation registrations further down + the entries in keyboards.ts.
 const COMMAND_DESCRIPTIONS: Array<{ command: string; description: string }> = [
-  { command: 'standup', description: 'Утренний план — 5 вопросов' },
+  // { command: 'standup', description: 'Утренний план — 5 вопросов' },
   { command: 'status', description: 'Короткий статус — над чем работаешь сейчас' },
   { command: 'report', description: 'Отчёт за день (до 18:00)' },
-  { command: 'brief', description: 'Взять задачу + self-deadline' },
-  { command: 'delivery', description: 'Закрыть brief (формат: /delivery <id>)' },
+  // { command: 'brief', description: 'Взять задачу + self-deadline' },
+  // { command: 'delivery', description: 'Закрыть brief (формат: /delivery <id>)' },
   { command: 'cancel', description: 'Отменить текущий wizard' },
   { command: 'help', description: 'Подсказка по командам' },
 ];
@@ -58,10 +62,11 @@ export function createBot(): Bot<BotContext> {
   // business, learning, explain, book) stay in the codebase but are not
   // registered — humans review those manually for now.
   bot.use(createConversation(reportConversation, 'report'));
-  bot.use(createConversation(standupConversation, 'standup'));
+  // PAUSED — see COMMAND_DESCRIPTIONS note above.
+  // bot.use(createConversation(standupConversation, 'standup'));
   bot.use(createConversation(statusConversation, 'status'));
-  bot.use(createConversation(briefConversation, 'brief'));
-  bot.use(createConversation(deliveryConversation, 'delivery'));
+  // bot.use(createConversation(briefConversation, 'brief'));
+  // bot.use(createConversation(deliveryConversation, 'delivery'));
 
   // /start — onboarding / link by username if not linked.
   bot.command('start', async (ctx) => {
@@ -137,20 +142,21 @@ export function createBot(): Bot<BotContext> {
     await ctx.conversation.enter(name);
   };
   bot.command('report', enter('report'));
-  bot.command('standup', enter('standup'));
+  // PAUSED — see COMMAND_DESCRIPTIONS note above.
+  // bot.command('standup', enter('standup'));
   bot.command('status', enter('status'));
-  bot.command('brief', enter('brief'));
+  // bot.command('brief', enter('brief'));
 
-  bot.command('delivery', async (ctx) => {
-    if (!ctx.vibecoderId) return ctx.reply(t.notLinkedWithUsername(ctx.from?.username));
-    const arg = (ctx.match ?? '').toString().trim();
-    const briefId = Number(arg);
-    if (!Number.isFinite(briefId) || briefId <= 0) {
-      return ctx.reply('Использование: /delivery <briefId>');
-    }
-    await ctx.conversation.exitAll();
-    await ctx.conversation.enter('delivery', briefId);
-  });
+  // bot.command('delivery', async (ctx) => {
+  //   if (!ctx.vibecoderId) return ctx.reply(t.notLinkedWithUsername(ctx.from?.username));
+  //   const arg = (ctx.match ?? '').toString().trim();
+  //   const briefId = Number(arg);
+  //   if (!Number.isFinite(briefId) || briefId <= 0) {
+  //     return ctx.reply('Использование: /delivery <briefId>');
+  //   }
+  //   await ctx.conversation.exitAll();
+  //   await ctx.conversation.enter('delivery', briefId);
+  // });
 
   // Manager commands
   bot.command('offline', async (ctx) => startOfflineMode(ctx, ctx.match?.toString()));
