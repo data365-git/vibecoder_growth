@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { lt } from 'drizzle-orm';
 import { env } from './env.js';
-import { db } from './db/client.js';
+import { db, pool } from './db/client.js';
 import * as schema from './db/schema/growth.js';
 import { createBot } from './bot/index.js';
 import { startScheduler } from './scheduler.js';
@@ -24,7 +24,18 @@ import { weeklyRoutes } from './routes/weekly.js';
 const app = new Hono();
 app.use('*', cors());
 
-app.get('/health', (c) => c.json({ ok: true, ts: new Date().toISOString() }));
+// /live — instant liveness probe, no DB call
+app.get('/live', (c) => c.text('ok'));
+
+// /ready — readiness probe, DB must be reachable
+app.get('/ready', async (c) => {
+  try {
+    await pool.query('SELECT 1');
+    return c.json({ ok: true, ts: new Date().toISOString() });
+  } catch (err) {
+    return c.json({ ok: false, error: String(err) }, 503);
+  }
+});
 
 app.route('/api/auth', authRoutes);
 app.route('/api/vibecoders', vibecoderRoutes);
@@ -51,7 +62,7 @@ if (webRoot) {
   // SPA fallback: any non-API, non-bot GET returns index.html so React Router takes over.
   app.get('*', async (c) => {
     const p = c.req.path;
-    if (p.startsWith('/api/') || p === '/bot' || p === '/health') return c.notFound();
+    if (p.startsWith('/api/') || p === '/bot' || p === '/live' || p === '/ready') return c.notFound();
     const indexHtml = fs.readFileSync(path.join(webRoot, 'index.html'), 'utf-8');
     return c.html(indexHtml);
   });
@@ -159,27 +170,14 @@ async function main() {
   let bot: ReturnType<typeof createBot> | undefined;
   if (env.GROWTH_BOT_TOKEN && env.BOT_MODE !== 'off') {
     bot = createBot();
-    const botInstance = bot;
     if (env.BOT_MODE === 'webhook') {
       if (!env.WEBHOOK_URL) throw new Error('WEBHOOK_URL required for webhook mode');
       app.post('/bot', webhookCallback(bot, 'hono'));
       const webhookUrl = `${env.WEBHOOK_URL.replace(/\/$/, '')}/bot`;
       // drop_pending_updates clears any updates Telegram has buffered from a
       // previous run that may now be stale or trigger replay crashes.
-      // A previous deploy had its setWebhook silently undone by an old
-      // polling container's bot.start() (which auto-calls deleteWebhook on
-      // each retry while crashing in a loop) — so we also re-assert the
-      // webhook periodically to survive any future race like that.
       await bot.api.setWebhook(webhookUrl, { drop_pending_updates: true });
       console.log('[bot] webhook configured at', webhookUrl);
-      setInterval(
-        () => {
-          botInstance.api.setWebhook(webhookUrl).catch((e: any) =>
-            console.warn('[bot] periodic setWebhook failed:', e?.description ?? e),
-          );
-        },
-        10 * 60 * 1000,
-      );
     } else {
       startPollingWithRetry(bot);
     }
@@ -187,6 +185,15 @@ async function main() {
   } else {
     console.log('[bot] disabled (no token or BOT_MODE=off)');
   }
+
+  const shutdown = async (sig: string) => {
+    console.log(`[shutdown] ${sig} received`);
+    try { await bot?.stop(); } catch (e) { console.warn('[shutdown] bot.stop failed', e); }
+    try { await pool.end(); } catch (e) { console.warn('[shutdown] pool.end failed', e); }
+    process.exit(0);
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 
   serve({ fetch: app.fetch, port: env.PORT }, (info) => {
     console.log(`[server] http://localhost:${info.port}`);
