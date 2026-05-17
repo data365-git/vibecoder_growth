@@ -209,12 +209,11 @@ export default function TeamPerformance() {
               <thead>
                 <tr className="text-xs text-muted-foreground border-b border-border/40 bg-muted/30">
                   <th className="text-left font-medium px-5 py-2.5">Employee</th>
-                  <th className="text-right font-medium px-2 py-2.5">Today %</th>
-                  <th className="text-right font-medium px-2 py-2.5">Period %</th>
-                  <th className="text-right font-medium px-2 py-2.5">Score</th>
-                  <th className="text-left font-medium px-2 py-2.5">Tier</th>
-                  <th className="text-right font-medium px-2 py-2.5">Earned</th>
-                  <th className="text-right font-medium px-2 py-2.5">Predicted</th>
+                  <th className="text-right font-medium px-2 py-2.5" title="How much of today's required activities this person completed">Today %</th>
+                  <th className="text-right font-medium px-2 py-2.5" title="Monthly 100-point score: discipline, design, business, learning, explanation">Score</th>
+                  <th className="text-left font-medium px-2 py-2.5" title="Bonus tier from score: 90+ = 100%, 75 = 70%, 60 = 40%, below = 0%">Tier</th>
+                  <th className="text-right font-medium px-2 py-2.5" title="Bonus accrued so far this month">Earned</th>
+                  <th className="text-right font-medium px-2 py-2.5" title="Bonus they'll get if they keep current pace">Predicted</th>
                   <th className="text-left font-medium px-2 py-2.5">Status</th>
                   <th className="text-right font-medium px-2 py-2.5">Missed</th>
                   <th className="text-right font-medium px-2 py-2.5">Late</th>
@@ -240,7 +239,6 @@ export default function TeamPerformance() {
                       </div>
                     </td>
                     <td className={`px-2 py-3 text-right tabular-nums ${percentColor(m.todayPercent)}`}>{m.todayPercent}%</td>
-                    <td className={`px-2 py-3 text-right tabular-nums ${percentColor(m.periodPercent)}`}>{m.periodPercent}%</td>
                     <td className="px-2 py-3 text-right tabular-nums font-semibold">{m.monthlyScore}</td>
                     <td className="px-2 py-3">
                       <span className={TIER_CHIP[m.bonusTier] ?? 'chip'}>{m.bonusTier}</span>
