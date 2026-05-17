@@ -20,6 +20,7 @@ import { growthLogRoutes } from './routes/growth-logs.js';
 import { scoreRoutes } from './routes/scores.js';
 import { settingRoutes } from './routes/settings.js';
 import { weeklyRoutes } from './routes/weekly.js';
+import { dashboardRoutes } from './routes/dashboard.js';
 
 const app = new Hono();
 app.use('*', cors());
@@ -44,6 +45,7 @@ app.route('/api/growth-logs', growthLogRoutes);
 app.route('/api/scores', scoreRoutes);
 app.route('/api/settings', settingRoutes);
 app.route('/api/weekly', weeklyRoutes);
+app.route('/api/dashboard', dashboardRoutes);
 
 // ---------- Serve the admin web UI ----------
 // In Docker: server CWD is /app/server, web build is at /app/web/dist.

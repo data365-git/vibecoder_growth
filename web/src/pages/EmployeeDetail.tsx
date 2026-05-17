@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, ChevronDown, ChevronUp, X, CheckCircle2, XCircle, Clock, Circle, Plus } from 'lucide-react';
+import { api } from '../api/client';
 
 interface CategoryRow {
   key: string;
@@ -27,57 +29,43 @@ interface DayItem {
   submittedAt?: string;
 }
 
-const MOCK_EMPLOYEE = {
-  id: 1, name: 'Алишер Каримов', role: 'UX Designer', avatar: 'АК',
-  bonusBaselineUzs: 1_000_000,
-  periodPercent: 88, monthlyScore: 84, bonusTier: '70%',
-  workingDaysTotal: 22, workingDaysPassed: 12,
-  liveBonusValueUzs: 700_000,
-  accruedBonusUzs: 381_818,
-  predictedFinalBonusUzs: 700_000,
-  predictedFinalScore: 84,
-  riskStatus: 'on_track' as const,
-  categoryBreakdown: [
-    { key: 'discipline_reporting', label: 'Discipline & Reporting', earned: 20, max: 25 },
-    { key: 'deadline_ownership', label: 'Deadline & Ownership', earned: 18, max: 25 },
-    { key: 'professional_learning', label: 'Professional Learning', earned: 14, max: 20 },
-    { key: 'uxui_taste', label: 'UX/UI Taste', earned: 14, max: 15 },
-    { key: 'business_thinking', label: 'Business Thinking', earned: 9, max: 10 },
-    { key: 'simple_explanation', label: 'Simple Explanation', earned: 9, max: 10 },
-  ] as CategoryRow[],
-  nextActions: [
-    'Submit daily reports on time for the next 6 working days',
-    'Add 3 missing design references this week',
-    'Write one business insight note before Friday',
-    'Complete task ownership brief for current sprint',
-  ],
-  manualAdjustments: [
-    { id: 1, date: '2026-05-10', category: 'Discipline & Reporting', points: -3, reason: 'Missed 3 standups during team event', reviewer: 'Admin' },
-    { id: 2, date: '2026-05-05', category: 'Professional Learning', points: +2, reason: 'Exceptional learning note quality', reviewer: 'Admin' },
-  ] as Adjustment[],
-};
+interface EmployeeData {
+  vibecoder: {
+    id: number;
+    name: string;
+    role: string;
+    avatar: string;
+    bonusBaselineUzs: number;
+  };
+  period: {
+    periodPercent: number;
+    monthlyScore: number;
+    bonusTier: string;
+    workingDaysTotal: number;
+    workingDaysPassed: number;
+    liveBonusValueUzs: number;
+    accruedBonusUzs: number;
+    predictedFinalBonusUzs: number;
+    predictedFinalScore: number;
+    riskStatus: string;
+  };
+  categoryBreakdown: CategoryRow[];
+  nextActions: string[];
+  manualAdjustments: Adjustment[];
+  calendar: Record<string, number>;
+}
 
-const MOCK_CALENDAR: Record<string, number> = {
-  '2026-05-01': 100, '2026-05-02': 85, '2026-05-03': 70,
-  '2026-05-05': 90, '2026-05-06': 100, '2026-05-07': 60,
-  '2026-05-08': 80, '2026-05-09': 95, '2026-05-10': 45,
-  '2026-05-12': 100, '2026-05-13': 75, '2026-05-14': 85,
-  '2026-05-15': 90, '2026-05-16': 100, '2026-05-17': 70,
-};
+interface DayDetail {
+  date: string;
+  dailyPercent: number;
+  activePoints: number;
+  completed: number;
+  missed: number;
+  late: number;
+  items: DayItem[];
+}
 
-const MOCK_DAY_DETAIL = {
-  date: '2026-05-14', dailyPercent: 85, activePoints: 100, completed: 85, missed: 15, late: 0,
-  items: [
-    { key: 'daily_report_on_time', label: 'Daily report before 18:00', status: 'completed', weight: 20, earned: 20, submittedAt: '17:32' },
-    { key: 'standup_participation', label: 'Stand-up submitted', status: 'completed', weight: 10, earned: 10, submittedAt: '09:15' },
-    { key: 'learning_note', label: 'Professional learning note', status: 'completed', weight: 15, earned: 15, submittedAt: '14:20' },
-    { key: 'design_ref', label: 'Design reference with 3+ observations', status: 'completed', weight: 15, earned: 15, submittedAt: '11:05' },
-    { key: 'task_delivery', label: 'Task ownership / delivery', status: 'completed', weight: 25, earned: 25, submittedAt: '16:58' },
-    { key: 'status_updates_offline', label: 'Status updates (offline mode)', status: 'not_required', weight: 15, earned: 0 },
-  ] as DayItem[],
-};
-
-const TODAY = '2026-05-17';
+const TODAY = new Date().toISOString().slice(0, 10);
 
 function dayColor(score: number | undefined, dateStr: string): string {
   if (!score || dateStr > TODAY) return dateStr > TODAY ? 'bg-gray-100 text-gray-300' : 'bg-gray-200 text-gray-500';
@@ -95,28 +83,39 @@ function barColor(ratio: number): string {
   return 'bg-danger';
 }
 
-function buildCalendarDays(): { dateStr: string; day: number; isSunday: boolean }[] {
-  const year = 2026, month = 4; // May = index 4
+function buildCalendarDays(year: number, month: number): { dateStr: string; day: number; isSunday: boolean }[] {
   const firstDay = new Date(year, month, 1).getDay();
   const offset = firstDay === 0 ? 6 : firstDay - 1;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const cells: { dateStr: string; day: number; isSunday: boolean }[] = [];
   for (let i = 0; i < offset; i++) cells.push({ dateStr: '', day: 0, isSunday: false });
   for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `2026-05-${String(d).padStart(2, '0')}`;
+    const mm = String(month + 1).padStart(2, '0');
+    const dd = String(d).padStart(2, '0');
+    const dateStr = `${year}-${mm}-${dd}`;
     const dow = new Date(year, month, d).getDay();
     cells.push({ dateStr, day: d, isSunday: dow === 0 });
   }
   return cells;
 }
 
-const CALENDAR_DAYS = buildCalendarDays();
+const now = new Date();
+const CALENDAR_DAYS = buildCalendarDays(now.getFullYear(), now.getMonth());
+const MONTH_LABEL = now.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
 const CATEGORIES = ['Discipline & Reporting', 'Deadline & Ownership', 'Professional Learning', 'UX/UI Taste', 'Business Thinking', 'Simple Explanation'];
+
+const RISK_LABELS: Record<string, string> = {
+  on_track: 'On Track',
+  warning: 'Warning',
+  weak: 'Weak',
+  critical: 'Critical',
+  pending: 'Pending',
+};
 
 export default function EmployeeDetail() {
   const { vibecoderId } = useParams();
   const navigate = useNavigate();
-  const emp = MOCK_EMPLOYEE;
 
   const [drawerDay, setDrawerDay] = useState<string | null>(null);
   const [calcOpen, setCalcOpen] = useState(false);
@@ -124,24 +123,54 @@ export default function EmployeeDetail() {
   const [toastVisible, setToastVisible] = useState(false);
   const [adjustForm, setAdjustForm] = useState({ category: CATEGORIES[0], points: 0, reason: '', evidence: '' });
 
-  if (String(emp.id) !== vibecoderId) {
+  const { data, isLoading, isError } = useQuery<EmployeeData>({
+    queryKey: ['dashboard', 'employee', vibecoderId],
+    queryFn: () => api(`/dashboard/employee/${vibecoderId}`),
+    enabled: !!vibecoderId,
+  });
+
+  const { data: dayData } = useQuery<DayDetail>({
+    queryKey: ['dashboard', 'employee', vibecoderId, 'day', drawerDay],
+    queryFn: () => api(`/dashboard/employee/${vibecoderId}/day/${drawerDay}`),
+    enabled: !!drawerDay && !!vibecoderId,
+  });
+
+  if (isLoading) {
     return (
       <div className="space-y-4">
         <button onClick={() => navigate('/performance')} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition">
           <ArrowLeft className="h-4 w-4" /> Back to Performance
         </button>
-        <div className="card-soft p-8 text-center text-muted-foreground">Employee not found in mock data.</div>
+        <div className="card-soft p-8 text-center text-muted-foreground">Loading...</div>
       </div>
     );
   }
 
-  const riskMessage = emp.riskStatus === 'on_track'
-    ? `On track — maintain current pace for ${emp.workingDaysTotal - emp.workingDaysPassed} more working days`
-    : emp.riskStatus === 'warning'
+  if (isError || !data) {
+    return (
+      <div className="space-y-4">
+        <button onClick={() => navigate('/performance')} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition">
+          <ArrowLeft className="h-4 w-4" /> Back to Performance
+        </button>
+        <div className="card-soft p-8 text-center text-muted-foreground">Employee not found.</div>
+      </div>
+    );
+  }
+
+  const emp = data.vibecoder;
+  const period = data.period;
+  const calendar = data.calendar;
+
+  const riskStatus = period.riskStatus;
+  const riskMessage = riskStatus === 'on_track'
+    ? `On track — maintain current pace for ${period.workingDaysTotal - period.workingDaysPassed} more working days`
+    : riskStatus === 'warning'
     ? `Needs more points to reach 90%`
+    : riskStatus === 'pending'
+    ? `Score computation coming in next release`
     : `Critical — at current pace bonus tier is 0%`;
 
-  const riskChipClass = emp.riskStatus === 'on_track' ? 'chip-success' : emp.riskStatus === 'warning' ? 'chip-primary' : 'chip-danger';
+  const riskChipClass = riskStatus === 'on_track' ? 'chip-success' : riskStatus === 'warning' ? 'chip-primary' : riskStatus === 'pending' ? 'chip-primary' : 'chip-danger';
 
   function submitAdjustment() {
     setAdjustModalOpen(false);
@@ -149,8 +178,6 @@ export default function EmployeeDetail() {
     setAdjustForm({ category: CATEGORIES[0], points: 0, reason: '', evidence: '' });
     setTimeout(() => setToastVisible(false), 3000);
   }
-
-  const drawerDetail = drawerDay === MOCK_DAY_DETAIL.date ? MOCK_DAY_DETAIL : null;
 
   return (
     <div className="space-y-6">
@@ -160,6 +187,10 @@ export default function EmployeeDetail() {
       >
         <ArrowLeft className="h-4 w-4" /> Back to Performance
       </button>
+
+      <div className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning-foreground">
+        Score computation coming in next release. Showing roster only.
+      </div>
 
       {/* Header strip */}
       <div className="card-soft p-6 space-y-4">
@@ -174,18 +205,18 @@ export default function EmployeeDetail() {
             </div>
           </div>
           <div className="flex gap-4 flex-wrap">
-            <KpiTile label="Period Score" value={`${emp.monthlyScore} / 100`} />
+            <KpiTile label="Period Score" value={`${period.monthlyScore} / 100`} />
             <KpiTile label="Bonus Tier">
-              <span className={emp.bonusTier === '100%' ? 'chip-success' : emp.bonusTier === '70%' ? 'chip-primary' : emp.bonusTier === '40%' ? 'chip-warning' : 'chip-danger'}>
-                {emp.bonusTier}
+              <span className={period.bonusTier === '100%' ? 'chip-success' : period.bonusTier === '70%' ? 'chip-primary' : period.bonusTier === '40%' ? 'chip-warning' : 'chip-danger'}>
+                {period.bonusTier}
               </span>
             </KpiTile>
-            <KpiTile label="Earned Till Today" value={`${emp.accruedBonusUzs.toLocaleString()} UZS`} />
-            <KpiTile label="Predicted Final Bonus" value={`${emp.predictedFinalBonusUzs.toLocaleString()} UZS`} />
+            <KpiTile label="Earned Till Today" value={`${period.accruedBonusUzs.toLocaleString()} UZS`} />
+            <KpiTile label="Predicted Final Bonus" value={`${period.predictedFinalBonusUzs.toLocaleString()} UZS`} />
           </div>
         </div>
         <div className="flex items-center gap-2 pt-1 border-t border-border/40">
-          <span className={riskChipClass}>{RISK_LABELS[emp.riskStatus]}</span>
+          <span className={riskChipClass}>{RISK_LABELS[riskStatus] ?? riskStatus}</span>
           <span className="text-sm text-muted-foreground">{riskMessage}</span>
         </div>
       </div>
@@ -203,21 +234,21 @@ export default function EmployeeDetail() {
           <div className="px-6 pb-6">
             <div className="bg-muted/40 rounded-xl p-4 font-mono text-sm space-y-1 text-foreground">
               <div className="flex justify-between"><span className="text-muted-foreground">Baseline salary:</span><span>{emp.bonusBaselineUzs.toLocaleString()} UZS</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Performance tier:</span><span>{emp.bonusTier}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Performance tier:</span><span>{period.bonusTier}</span></div>
               <div className="border-t border-border/60 my-2" />
               <div className="flex justify-between">
                 <span className="text-muted-foreground">If month ended today:</span>
-                <span>{emp.bonusBaselineUzs.toLocaleString()} × {emp.bonusTier} = {emp.liveBonusValueUzs.toLocaleString()} UZS</span>
+                <span>{emp.bonusBaselineUzs.toLocaleString()} × {period.bonusTier} = {period.liveBonusValueUzs.toLocaleString()} UZS</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Earned until today:</span>
-                <span>{emp.liveBonusValueUzs.toLocaleString()} × {emp.workingDaysPassed} / {emp.workingDaysTotal} = {emp.accruedBonusUzs.toLocaleString()} UZS</span>
+                <span>{period.liveBonusValueUzs.toLocaleString()} × {period.workingDaysPassed} / {period.workingDaysTotal} = {period.accruedBonusUzs.toLocaleString()} UZS</span>
               </div>
-              <div className="text-xs text-muted-foreground pl-0">({emp.workingDaysPassed} working days passed of {emp.workingDaysTotal} total)</div>
+              <div className="text-xs text-muted-foreground pl-0">({period.workingDaysPassed} working days passed of {period.workingDaysTotal} total)</div>
               <div className="border-t border-border/60 my-2" />
               <div className="flex justify-between font-semibold">
                 <span className="text-muted-foreground">Predicted final bonus:</span>
-                <span>{emp.predictedFinalBonusUzs.toLocaleString()} UZS</span>
+                <span>{period.predictedFinalBonusUzs.toLocaleString()} UZS</span>
               </div>
               <div className="text-xs text-muted-foreground">(based on current pace)</div>
             </div>
@@ -226,32 +257,34 @@ export default function EmployeeDetail() {
       </div>
 
       {/* Category breakdown */}
-      <div className="card-soft p-6 space-y-4">
-        <h2 className="text-base font-semibold">Category Breakdown</h2>
-        <div className="space-y-3">
-          {emp.categoryBreakdown.map((cat) => {
-            const ratio = cat.earned / cat.max;
-            return (
-              <div key={cat.key}>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="text-foreground">{cat.label}</span>
-                  <span className="tabular-nums text-muted-foreground font-medium">{cat.earned} / {cat.max}</span>
+      {data.categoryBreakdown.length > 0 && (
+        <div className="card-soft p-6 space-y-4">
+          <h2 className="text-base font-semibold">Category Breakdown</h2>
+          <div className="space-y-3">
+            {data.categoryBreakdown.map((cat) => {
+              const ratio = cat.earned / cat.max;
+              return (
+                <div key={cat.key}>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span className="text-foreground">{cat.label}</span>
+                    <span className="tabular-nums text-muted-foreground font-medium">{cat.earned} / {cat.max}</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${barColor(ratio)} transition-all`}
+                      style={{ width: `${(ratio * 100).toFixed(1)}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${barColor(ratio)} transition-all`}
-                    style={{ width: `${(ratio * 100).toFixed(1)}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Performance calendar */}
       <div className="card-soft p-6">
-        <h2 className="text-base font-semibold mb-4">Performance Calendar — May 2026</h2>
+        <h2 className="text-base font-semibold mb-4">Performance Calendar — {MONTH_LABEL}</h2>
         <div className="grid grid-cols-7 gap-1 mb-1">
           {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
             <div key={d} className="text-center text-xs text-muted-foreground py-1 font-medium">{d}</div>
@@ -260,7 +293,7 @@ export default function EmployeeDetail() {
         <div className="grid grid-cols-7 gap-1">
           {CALENDAR_DAYS.map((cell, i) => {
             if (!cell.day) return <div key={i} />;
-            const score = MOCK_CALENDAR[cell.dateStr];
+            const score = calendar[cell.dateStr];
             const isFuture = cell.dateStr > TODAY;
             const colorCls = cell.isSunday ? 'bg-gray-100 text-gray-400' : dayColor(score, cell.dateStr);
             const clickable = !isFuture && !cell.isSunday && score !== undefined;
@@ -294,27 +327,20 @@ export default function EmployeeDetail() {
         </div>
       </div>
 
-      {/* Missing requirements */}
-      <div className="card-soft p-6 space-y-3">
-        <h2 className="text-base font-semibold">Missing Requirements This Period</h2>
-        <ul className="space-y-2 text-sm text-muted-foreground">
-          <li className="flex items-center gap-2"><XCircle className="h-4 w-4 text-danger shrink-0" /> Design reference (May 6)</li>
-          <li className="flex items-center gap-2"><XCircle className="h-4 w-4 text-danger shrink-0" /> Status update (May 3)</li>
-        </ul>
-      </div>
-
       {/* What to do next */}
-      <div className="card-soft p-6 space-y-3 border-l-4 border-l-success">
-        <h2 className="text-base font-semibold">What to Do Next</h2>
-        <ol className="space-y-2 text-sm list-none">
-          {emp.nextActions.map((action, i) => (
-            <li key={i} className="flex items-start gap-2.5">
-              <span className="h-5 w-5 rounded-full bg-success-soft text-success text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
-              <span>{action}</span>
-            </li>
-          ))}
-        </ol>
-      </div>
+      {data.nextActions.length > 0 && (
+        <div className="card-soft p-6 space-y-3 border-l-4 border-l-success">
+          <h2 className="text-base font-semibold">What to Do Next</h2>
+          <ol className="space-y-2 text-sm list-none">
+            {data.nextActions.map((action, i) => (
+              <li key={i} className="flex items-start gap-2.5">
+                <span className="h-5 w-5 rounded-full bg-success-soft text-success text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                <span>{action}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
 
       {/* Manual adjustments */}
       <div className="card-soft p-6 space-y-4">
@@ -327,32 +353,36 @@ export default function EmployeeDetail() {
             <Plus className="h-4 w-4" /> Add Adjustment
           </button>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-xs text-muted-foreground border-b border-border/40 bg-muted/30">
-                <th className="text-left font-medium px-3 py-2">Date</th>
-                <th className="text-left font-medium px-3 py-2">Category</th>
-                <th className="text-right font-medium px-3 py-2">Points</th>
-                <th className="text-left font-medium px-3 py-2">Reason</th>
-                <th className="text-left font-medium px-3 py-2">Reviewer</th>
-              </tr>
-            </thead>
-            <tbody>
-              {emp.manualAdjustments.map((adj) => (
-                <tr key={adj.id} className="border-b border-border/40 last:border-0">
-                  <td className="px-3 py-2.5 text-muted-foreground">{adj.date}</td>
-                  <td className="px-3 py-2.5">{adj.category}</td>
-                  <td className={`px-3 py-2.5 text-right font-semibold tabular-nums ${adj.points > 0 ? 'text-success' : 'text-danger'}`}>
-                    {adj.points > 0 ? `+${adj.points}` : adj.points}
-                  </td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{adj.reason}</td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{adj.reviewer}</td>
+        {data.manualAdjustments.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-xs text-muted-foreground border-b border-border/40 bg-muted/30">
+                  <th className="text-left font-medium px-3 py-2">Date</th>
+                  <th className="text-left font-medium px-3 py-2">Category</th>
+                  <th className="text-right font-medium px-3 py-2">Points</th>
+                  <th className="text-left font-medium px-3 py-2">Reason</th>
+                  <th className="text-left font-medium px-3 py-2">Reviewer</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {data.manualAdjustments.map((adj) => (
+                  <tr key={adj.id} className="border-b border-border/40 last:border-0">
+                    <td className="px-3 py-2.5 text-muted-foreground">{adj.date}</td>
+                    <td className="px-3 py-2.5">{adj.category}</td>
+                    <td className={`px-3 py-2.5 text-right font-semibold tabular-nums ${adj.points > 0 ? 'text-success' : 'text-danger'}`}>
+                      {adj.points > 0 ? `+${adj.points}` : adj.points}
+                    </td>
+                    <td className="px-3 py-2.5 text-muted-foreground">{adj.reason}</td>
+                    <td className="px-3 py-2.5 text-muted-foreground">{adj.reviewer}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No manual adjustments yet.</p>
+        )}
       </div>
 
       {/* Daily drawer */}
@@ -363,38 +393,39 @@ export default function EmployeeDetail() {
             <div className="flex items-center justify-between px-6 py-5 border-b border-border/60">
               <div>
                 <div className="font-semibold text-base">{drawerDay}</div>
-                {drawerDetail && (
+                {dayData && dayData.items.length > 0 ? (
                   <div className="text-sm text-muted-foreground mt-0.5">
-                    Daily Score: {drawerDetail.dailyPercent}% · {drawerDetail.completed} / {drawerDetail.activePoints} pts
+                    Daily Score: {dayData.dailyPercent}% · {dayData.completed} / {dayData.activePoints} pts
                   </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground mt-0.5">No detailed data for this day</div>
                 )}
-                {!drawerDetail && <div className="text-sm text-muted-foreground mt-0.5">No detailed data for this day</div>}
               </div>
               <button onClick={() => setDrawerDay(null)} className="rounded-xl border border-border/70 p-2 hover:bg-muted transition">
                 <X className="h-4 w-4" />
               </button>
             </div>
-            {drawerDetail && (
+            {dayData && dayData.items.length > 0 && (
               <div className="flex-1 px-6 py-4 space-y-4">
                 <DrawerSection
                   title="Completed"
                   icon={<CheckCircle2 className="h-4 w-4 text-success" />}
-                  items={drawerDetail.items.filter((i) => i.status === 'completed')}
+                  items={dayData.items.filter((i) => i.status === 'completed')}
                 />
                 <DrawerSection
                   title="Missed"
                   icon={<XCircle className="h-4 w-4 text-danger" />}
-                  items={drawerDetail.items.filter((i) => i.status === 'missed')}
+                  items={dayData.items.filter((i) => i.status === 'missed')}
                 />
                 <DrawerSection
                   title="Late"
                   icon={<Clock className="h-4 w-4 text-warning" />}
-                  items={drawerDetail.items.filter((i) => i.status === 'late')}
+                  items={dayData.items.filter((i) => i.status === 'late')}
                 />
                 <DrawerSection
                   title="Not Required"
                   icon={<Circle className="h-4 w-4 text-muted-foreground" />}
-                  items={drawerDetail.items.filter((i) => i.status === 'not_required')}
+                  items={dayData.items.filter((i) => i.status === 'not_required')}
                 />
               </div>
             )}
@@ -477,13 +508,6 @@ export default function EmployeeDetail() {
     </div>
   );
 }
-
-const RISK_LABELS: Record<string, string> = {
-  on_track: 'On Track',
-  warning: 'Warning',
-  weak: 'Weak',
-  critical: 'Critical',
-};
 
 function KpiTile({ label, value, children }: { label: string; value?: string; children?: React.ReactNode }) {
   return (
