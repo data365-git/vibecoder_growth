@@ -3,6 +3,7 @@ import { getToken } from './api/client';
 import AppLayout from './layout/AppLayout';
 import Login from './pages/Login';
 import Team from './pages/Team';
+import Dashboard from './pages/Dashboard';
 import DailyOverview from './pages/DailyOverview';
 // PAUSED 2026-05-16: /standup is paused on the bot, hidden from the
 // sidebar, and the route is muted. Restore by un-commenting both lines.
@@ -31,7 +32,7 @@ export default function App() {
           </RequireAuth>
         }
       >
-        <Route index element={<Navigate to="/daily" replace />} />
+        <Route index element={<Dashboard />} />
         <Route path="daily" element={<DailyOverview />} />
         {/* PAUSED: <Route path="standup" element={<Standup />} /> */}
         <Route path="status" element={<StatusGrid />} />

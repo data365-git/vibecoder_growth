@@ -1,27 +1,13 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import {
-  LayoutGrid,
-  Circle,
-  Users,
-  Settings as SettingsIcon,
-  HelpCircle,
-} from 'lucide-react';
+import { LayoutGrid, HelpCircle } from 'lucide-react';
 
-// Sidebar is intentionally short: only pages that have live data flowing
-// today (discipline-only mode). Weekly review, Monthly scores, and Growth
-// logs depend on the 5 manual-pillar wizards which are muted — their
-// routes still exist at /weekly /scores /logs for future revival, just
-// hidden from nav. Logout lives on the Settings page now, not in the
-// sidebar corner — it deserves a real Account section.
-// PAUSED 2026-05-16: /standup is paused on the bot; the Stand-up page is
-// hidden from the sidebar. Route still exists in App.tsx so direct links
-// from old bookmarks don't 404.
+// Sidebar collapsed to the two pages the manager actually needs: the
+// consolidated Performance dashboard and the Help page. Other routes
+// (/daily /status /team /weekly /scores /logs /settings) still exist in
+// App.tsx for direct URL access, just hidden from nav to keep the surface
+// area focused.
 const links = [
-  { to: '/daily', label: 'Daily', icon: LayoutGrid },
-  // { to: '/standup', label: 'Stand-up', icon: CalendarDays },
-  { to: '/status', label: 'Status', icon: Circle },
-  { to: '/team', label: 'Team', icon: Users },
-  { to: '/settings', label: 'Settings', icon: SettingsIcon },
+  { to: '/', label: 'Dashboard', icon: LayoutGrid },
   { to: '/help', label: 'How it works', icon: HelpCircle },
 ];
 
@@ -47,6 +33,7 @@ export default function AppLayout() {
               <NavLink
                 key={l.to}
                 to={l.to}
+                end={l.to === '/'}
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
                     isActive

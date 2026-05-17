@@ -29,6 +29,15 @@ export const reminderKindEnum = pgEnum('reminder_kind', [
   'weekly_review',
   'month_end',
 ]);
+export const pillarEnum = pgEnum('habit_pillar', [
+  'discipline_reporting',
+  'uxui_taste',
+  'business_thinking',
+  'professional_learning',
+  'simple_explanation',
+  'deadline_ownership',
+]);
+export const habitMarkStatusEnum = pgEnum('habit_mark_status', ['done', 'not_done']);
 
 // ---------- Admin auth (for PM web UI) ----------
 export const admins = pgTable(
@@ -389,6 +398,30 @@ export const dailyCards = pgTable(
   (t) => ({
     uniqDay: uniqueIndex('daily_cards_vc_date_unique').on(t.vibecoderId, t.cardDate),
     byDate: index('daily_cards_date_idx').on(t.cardDate),
+  }),
+);
+
+// ---------- Habit tracking ----------
+// A row per (vibecoder, day, pillar) where a manager has explicitly marked
+// progress. Absence = not yet evaluated. The dashboard treats 'done' as
+// counting toward the monthly target; 'not_done' is recorded for audit but
+// does not count. The `discipline_reporting` pillar is excluded — it is
+// auto-derived from dailyReports.status.
+export const habitMarks = pgTable(
+  'habit_marks',
+  {
+    id: serial('id').primaryKey(),
+    vibecoderId: integer('vibecoder_id').notNull().references(() => vibecoders.id, { onDelete: 'cascade' }),
+    markDate: date('mark_date').notNull(),
+    pillar: pillarEnum('pillar').notNull(),
+    status: habitMarkStatusEnum('status').notNull(),
+    note: text('note'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    uniqMark: uniqueIndex('habit_marks_vc_date_pillar_unique').on(t.vibecoderId, t.markDate, t.pillar),
+    byVcDate: index('habit_marks_vc_date_idx').on(t.vibecoderId, t.markDate),
   }),
 );
 

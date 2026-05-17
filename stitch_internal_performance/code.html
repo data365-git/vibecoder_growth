@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Employee Habit &amp; Performance Tracker</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<style data-purpose="custom-styles">
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .chart-line {
+      stroke-dasharray: 1000;
+      stroke-dashoffset: 1000;
+      animation: dash 2s ease-out forwards;
+    }
+    @keyframes dash {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+  </style>
+</head>
+<body class="text-slate-800 antialiased h-screen flex flex-col">
+<!-- BEGIN: MainHeader -->
+<header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0" data-purpose="top-header">
+<div>
+<h1 class="text-xl font-bold text-slate-900">Employee Habit &amp; Performance Tracker</h1>
+<p class="text-sm text-slate-500 mt-1 flex items-center gap-1">
+        Track daily habits. Build consistency. Earn performance bonuses.
+        <svg class="h-4 w-4 text-slate-400" fill="currentColor" viewbox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" fill-rule="evenodd"></path>
+</svg>
+</p>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative">
+<svg class="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<input class="pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64" placeholder="Search employees..." type="text"/>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-slate-50">
+          May 21, 2025
+          <svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+<button class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-slate-50">
+          May 2025
+          <svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+</div>
+<button class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-slate-50">
+<svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+        Filters
+      </button>
+</div>
+</header>
+<!-- END: MainHeader -->
+<!-- BEGIN: MainContent -->
+<main class="flex-1 overflow-auto p-6" data-purpose="main-dashboard-content">
+<div class="max-w-7xl mx-auto space-y-6">
+<!-- BEGIN: KPIRow -->
+<section class="grid grid-cols-4 gap-6" data-purpose="kpi-cards">
+<!-- KPI 1 -->
+<div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex items-center gap-4">
+<div class="relative w-14 h-14 shrink-0">
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<path class="text-slate-100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3"></path>
+<path class="text-emerald-500" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="78, 100" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center">
+<svg class="h-6 w-6 text-emerald-500" fill="currentColor" viewbox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" fill-rule="evenodd"></path>
+</svg>
+</div>
+</div>
+<div>
+<p class="text-sm font-medium text-slate-500">Today's Completion Rate</p>
+<p class="text-2xl font-bold text-slate-900 mt-1">78%</p>
+<p class="text-xs text-slate-500 mt-1">28 / 36 completed <span class="text-emerald-500 font-medium ml-1">↑ 12% vs yesterday</span></p>
+</div>
+</div>
+<!-- KPI 2 -->
+<div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex items-center gap-4">
+<div class="relative w-14 h-14 shrink-0">
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<path class="text-slate-100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3"></path>
+<path class="text-blue-500" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="84, 100" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center bg-blue-50 rounded-full m-2 border-2 border-white">
+<svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+</div>
+<div>
+<p class="text-sm font-medium text-slate-500">Monthly Performance Rate</p>
+<p class="text-2xl font-bold text-slate-900 mt-1">84%</p>
+<p class="text-xs text-slate-500 mt-1">604 / 720 completed <span class="text-emerald-500 font-medium ml-1">↑ 8% vs last month</span></p>
+</div>
+</div>
+<!-- KPI 3 -->
+<div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex items-center gap-4">
+<div class="w-14 h-14 shrink-0 bg-purple-100 rounded-full flex items-center justify-center">
+<span class="text-purple-600 text-2xl font-bold">$</span>
+</div>
+<div>
+<p class="text-sm font-medium text-slate-500">Bonus Earned So Far</p>
+<p class="text-2xl font-bold text-slate-900 mt-1">$3,360</p>
+<p class="text-xs text-slate-500 mt-1">42% of monthly bonus</p>
+</div>
+</div>
+<!-- KPI 4 -->
+<div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex items-center gap-4">
+<div class="w-14 h-14 shrink-0 bg-orange-50 rounded-full flex items-center justify-center relative">
+<svg class="w-full h-full transform -rotate-90 absolute inset-0" viewbox="0 0 36 36">
+<path class="text-orange-100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3"></path>
+<path class="text-orange-400" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="90, 100" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<svg class="h-6 w-6 text-orange-500 z-10" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<div>
+<p class="text-sm font-medium text-slate-500">Predicted EOM Bonus</p>
+<p class="text-2xl font-bold text-slate-900 mt-1">$7,980</p>
+<p class="text-xs text-slate-500 mt-1">At current pace</p>
+</div>
+</div>
+</section>
+<!-- END: KPIRow -->
+<!-- BEGIN: EmployeeSelector -->
+<section data-purpose="employee-selector">
+<h2 class="text-sm font-semibold text-slate-800 mb-3">Select Employee</h2>
+<div class="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide">
+<!-- Active Employee -->
+<button class="bg-white border-2 border-blue-500 rounded-xl p-3 flex items-center gap-3 min-w-[200px] shadow-sm relative shrink-0 text-left">
+<div class="absolute -top-2 -right-2 bg-blue-500 rounded-full p-0.5 border-2 border-white">
+<svg class="h-3 w-3 text-white" fill="currentColor" viewbox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" fill-rule="evenodd"></path>
+</svg>
+</div>
+<img alt="Abdulaziym" class="w-10 h-10 rounded-full bg-slate-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjLI78cTDTXX547NLL6V9hmaGfVuC6C5cs-6o0r3wZP2tGJcjH1_Kar60OigVikOB0Cd03noWVrLJjDeSLcFsttzmnXzlcFzSvfj7TD9yvh8fwqwBJLmJi7rQiFYSdGTIrz5Wjv00SdwtZkPVk_XhCrlT20Bac8TwGe2cjLQiBLCzm1gcIJsTdocLTFY_31OD5qBlfI3CqLRuC1jp1cZdYmiy1B1-xsuuQETl5Xl4zqlGTAe5aJihSnmdDuAjjAm8SMlMBClvWeIc"/>
+<div>
+<p class="font-semibold text-slate-900 text-sm">Abdulaziym</p>
+<div class="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+<span>84%</span>
+<span class="w-1 h-1 rounded-full bg-slate-300"></span>
+<span>604 / 720</span>
+</div>
+</div>
+</button>
+<!-- Other Employees -->
+<button class="bg-white border border-slate-200 rounded-xl p-3 flex items-center gap-3 min-w-[200px] shadow-sm shrink-0 text-left hover:border-slate-300 transition-colors">
+<img alt="Bunyodbek" class="w-10 h-10 rounded-full bg-slate-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnV-31Kk0_lI76tlWTA3CuSUvxSJSpDdldZdXn7faOK_q_IrhS8qoqIHw-EvDOEL5ClGbRRCewW9kxIrUr0vvozs3eZfhtNMUNYBDcP9Z0Buc9pVNhKE_KVSOK9wWh4_7hiyhDZg6moZeX1QLbIvbjyJLIWcvX6NJtT8DL3JoyefLnN1l7npvSAu6WSXc4mM_cP_4MxL4RxbwuGnGEreW-rmJElAd855w25Xf49Ucbd0iTWAe1c4VBxT-vYgF1VlDb_An5bskKI1g"/>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<p class="font-semibold text-slate-900 text-sm">Bunyodbek</p>
+<span class="text-emerald-500 font-semibold text-sm">76%</span>
+</div>
+<p class="text-xs text-slate-500 mt-0.5">548 / 720</p>
+</div>
+</button>
+<button class="bg-white border border-slate-200 rounded-xl p-3 flex items-center gap-3 min-w-[200px] shadow-sm shrink-0 text-left hover:border-slate-300 transition-colors">
+<img alt="Dilshod" class="w-10 h-10 rounded-full bg-slate-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDkB2ZzSlWDBpDm9l2sDamqZaER9mdCv9mtCcF1SGSuX3SMk5xs_oy0q10AvKLfazK3d1RkwIegp8TV2FidlQpdpkEZdHszxBwxN91bPLW2F6X5SSjEwBq-4MVH0eKrCUTVn22CKExezTohg319xRfQA7Ira5BL797msVaZ8OYkx02e9gP4z6MactFVUYXwgkleDKpMSWfmb9Cwmr5F_PmNrvhBlRcGDGsNsiv8xRV60pissgRkaqTu_OgnwRUzQlBH3FravgsDGik"/>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<p class="font-semibold text-slate-900 text-sm">Dilshod</p>
+<span class="text-emerald-500 font-semibold text-sm">88%</span>
+</div>
+<p class="text-xs text-slate-500 mt-0.5">634 / 720</p>
+</div>
+</button>
+<button class="bg-white border border-slate-200 rounded-xl p-3 flex items-center gap-3 min-w-[200px] shadow-sm shrink-0 text-left hover:border-slate-300 transition-colors">
+<img alt="Sardor" class="w-10 h-10 rounded-full bg-slate-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBLHuXYkwWY89tuw-QzLREzv-fC5r3hA4lHPvKpzEda_vGd1W_YgngTfsjzpJp6DYSnc7jxbB1EPPeMqwE778eecOHlPEdKqfHSsCH_dosr0InS_uAWp0rts5d-9-yawQF0YwMq_IETsnseeWeajQ3cPYvLqJ7aYtyeJJ5NLNVeWw35iWNACEFdXXrvBm2ex6j-oOxNc_6wGON3zRHPlLBKJiDULGvNrbMhRaFGvBdi023X8MT2lgvLnn7Dntqo5sY5T3fsRo3enk"/>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<p class="font-semibold text-slate-900 text-sm">Sardor</p>
+<span class="text-emerald-500 font-semibold text-sm">72%</span>
+</div>
+<p class="text-xs text-slate-500 mt-0.5">518 / 720</p>
+</div>
+</button>
+<button class="bg-white border border-slate-200 rounded-xl p-3 flex items-center gap-3 min-w-[200px] shadow-sm shrink-0 text-left hover:border-slate-300 transition-colors">
+<img alt="Elbek" class="w-10 h-10 rounded-full bg-slate-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBFL3_Nciv9pAe7_4QveNrhMD_h4rDn4WNDszqETDHEkHgZh9Ve4khH9iugajy1hW6hJ2mB2WvYKCgveZGkL7XsI-dxO4ShDCHb74xCMuXDo7aFoN6JkWsnKIxXs3izeJhr7iiEFsvhz1yj0YYx1ZHwAfgxO4J9vGS9-pCvfuMlsi6sgtlChTJMKNA8Pz22WH4ZPEzTl6L9Y3Bpe1yyR5tYeJ8UqZgpIv3AfxAhrvulT9qz3V2GT3ieQFVA3_rgZqoGRQb1DJfuqrk"/>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<p class="font-semibold text-slate-900 text-sm">Elbek</p>
+<span class="text-emerald-500 font-semibold text-sm">81%</span>
+</div>
+<p class="text-xs text-slate-500 mt-0.5">583 / 720</p>
+</div>
+</button>
+<button class="bg-white border border-slate-200 rounded-xl w-10 h-[66px] flex items-center justify-center shadow-sm shrink-0 hover:bg-slate-50">
+<svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+</div>
+</section>
+<!-- END: EmployeeSelector -->
+<div class="">
+<!-- BEGIN: LeftColumn (Tracker & Charts) -->
+<div class="flex-1 space-y-6">
+<!-- BEGIN: HabitTracker -->
+<section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden" data-purpose="habit-tracker">
+<div class="p-5 border-b border-slate-200 flex items-center justify-between">
+<h2 class="font-semibold text-slate-900">Daily Habit Tracker – Abdulaziym</h2>
+<div class="flex items-center gap-4 text-xs font-medium text-slate-500">
+<span class="flex items-center gap-1.5"><span class="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center"><svg class="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span> Done</span>
+<span class="flex items-center gap-1.5"><span class="w-4 h-4 rounded-full bg-rose-100 flex items-center justify-center"><svg class="w-3 h-3 text-rose-500" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span> Not Done</span>
+<span class="flex items-center gap-1.5"><span class="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center"><span class="w-2 h-0.5 bg-slate-300 rounded"></span></span> Not Set</span>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-sm text-left">
+<thead class="text-xs text-slate-500 uppercase bg-slate-50/50">
+<tr>
+<th class="px-5 py-3 font-medium text-slate-500 w-1/4">Habit / Category</th>
+<th class="px-2 py-3 font-medium text-center border-l border-slate-100">May 15<br/><span class="text-[10px] font-normal">Thu</span></th>
+<th class="px-2 py-3 font-medium text-center border-l border-slate-100">May 16<br/><span class="text-[10px] font-normal">Fri</span></th>
+<th class="px-2 py-3 font-medium text-center border-l border-slate-100">May 17<br/><span class="text-[10px] font-normal">Sat</span></th>
+<th class="px-2 py-3 font-medium text-center border-l border-slate-100">May 18<br/><span class="text-[10px] font-normal">Sun</span></th>
+<th class="px-2 py-3 font-medium text-center border-l border-slate-100">May 19<br/><span class="text-[10px] font-normal">Mon</span></th>
+<th class="px-2 py-3 font-medium text-center border-l border-slate-100">May 20<br/><span class="text-[10px] font-normal">Tue</span></th>
+<th class="px-2 py-3 font-medium text-center border-x border-blue-200 bg-blue-50/50 text-blue-600">May 21<br/><span class="text-[10px] font-normal">Wed</span></th>
+<th class="px-5 py-3 font-medium text-slate-500 w-1/5">Monthly Progress</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100">
+<!-- Row 1 -->
+<tr class="hover:bg-slate-50/50">
+<td class="px-5 py-4 font-medium text-slate-700 flex items-center gap-2">
+<svg class="h-5 w-5 text-blue-500" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+                      Discipline &amp; Reporting
+                    </td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-rose-100 items-center justify-center text-rose-500">×</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-x border-blue-200 bg-blue-50/30"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600 ring-2 ring-blue-500 ring-offset-2">✓</span></td>
+<td class="px-5 py-4">
+<div class="flex justify-between text-xs mb-1"><span>5 / 10</span></div>
+<div class="w-full bg-slate-100 rounded-full h-1.5"><div class="bg-rose-500 h-1.5 rounded-full" style="width: 50%"></div></div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-slate-50/50">
+<td class="px-5 py-4 font-medium text-slate-700 flex items-center gap-2">
+<svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+                      UX/UI Taste
+                    </td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-slate-100 items-center justify-center"><span class="w-3 h-0.5 bg-slate-300 rounded"></span></span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-rose-100 items-center justify-center text-rose-500">×</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-x border-blue-200 bg-blue-50/30 cursor-pointer hover:bg-blue-100"><span class="inline-flex w-6 h-6 rounded-full bg-slate-100 items-center justify-center"><span class="w-3 h-0.5 bg-slate-300 rounded"></span></span></td>
+<td class="px-5 py-4">
+<div class="flex justify-between text-xs mb-1"><span>4 / 20</span></div>
+<div class="w-full bg-slate-100 rounded-full h-1.5"><div class="bg-rose-500 h-1.5 rounded-full" style="width: 20%"></div></div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-slate-50/50">
+<td class="px-5 py-4 font-medium text-slate-700 flex items-center gap-2">
+<svg class="h-5 w-5 text-amber-500" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+                      Business Thinking
+                    </td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-rose-100 items-center justify-center text-rose-500">×</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-slate-100 items-center justify-center"><span class="w-3 h-0.5 bg-slate-300 rounded"></span></span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-rose-100 items-center justify-center text-rose-500">×</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-slate-100 items-center justify-center"><span class="w-3 h-0.5 bg-slate-300 rounded"></span></span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-rose-100 items-center justify-center text-rose-500">×</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-slate-100 items-center justify-center"><span class="w-3 h-0.5 bg-slate-300 rounded"></span></span></td>
+<td class="text-center border-x border-blue-200 bg-blue-50/30 cursor-pointer hover:bg-blue-100"><span class="inline-flex w-6 h-6 rounded-full bg-slate-100 items-center justify-center"><span class="w-3 h-0.5 bg-slate-300 rounded"></span></span></td>
+<td class="px-5 py-4">
+<div class="flex justify-between text-xs mb-1"><span>0 / 20</span></div>
+<div class="w-full bg-slate-100 rounded-full h-1.5"><div class="bg-slate-200 h-1.5 rounded-full" style="width: 0%"></div></div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-slate-50/50">
+<td class="px-5 py-4 font-medium text-slate-700 flex items-center gap-2">
+<svg class="h-5 w-5 text-emerald-500" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+                      Professional Learning
+                    </td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-rose-100 items-center justify-center text-rose-500">×</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-slate-100 items-center justify-center"><span class="w-3 h-0.5 bg-slate-300 rounded"></span></span></td>
+<td class="text-center border-x border-blue-200 bg-blue-50/30 cursor-pointer hover:bg-blue-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="px-5 py-4">
+<div class="flex justify-between text-xs mb-1"><span>3 / 15</span></div>
+<div class="w-full bg-slate-100 rounded-full h-1.5"><div class="bg-rose-500 h-1.5 rounded-full" style="width: 20%"></div></div>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-slate-50/50">
+<td class="px-5 py-4 font-medium text-slate-700 flex items-center gap-2">
+<svg class="h-5 w-5 text-sky-500" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+                      Simple Explanation
+                    </td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-rose-100 items-center justify-center text-rose-500">×</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-slate-100 items-center justify-center"><span class="w-3 h-0.5 bg-slate-300 rounded"></span></span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-rose-100 items-center justify-center text-rose-500">×</span></td>
+<td class="text-center border-x border-blue-200 bg-blue-50/30 cursor-pointer hover:bg-blue-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="px-5 py-4">
+<div class="flex justify-between text-xs mb-1"><span>3 / 10</span></div>
+<div class="w-full bg-slate-100 rounded-full h-1.5"><div class="bg-rose-500 h-1.5 rounded-full" style="width: 30%"></div></div>
+</td>
+</tr>
+<!-- Row 6 -->
+<tr class="hover:bg-slate-50/50 border-b border-slate-100">
+<td class="px-5 py-4 font-medium text-slate-700 flex items-center gap-2">
+<svg class="h-5 w-5 text-rose-500" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<circle cx="12" cy="12" r="10" stroke-width="2"></circle>
+<path d="M12 6v6l4 2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+                      Deadline &amp; Ownership
+                    </td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-rose-100 items-center justify-center text-rose-500">×</span></td>
+<td class="text-center border-l border-slate-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="text-center border-x border-blue-200 bg-blue-50/30 cursor-pointer hover:bg-blue-100"><span class="inline-flex w-6 h-6 rounded-full bg-emerald-100 items-center justify-center text-emerald-600">✓</span></td>
+<td class="px-5 py-4">
+<div class="flex justify-between text-xs mb-1"><span>15 / 25</span></div>
+<div class="w-full bg-slate-100 rounded-full h-1.5"><div class="bg-orange-500 h-1.5 rounded-full" style="width: 60%"></div></div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-3 bg-slate-50 text-center text-xs text-slate-500 border-t border-slate-200 flex items-center justify-center gap-1">
+<svg class="h-4 w-4" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+              Click any cell to mark Done or Not Done for today.
+            </div>
+</section>
+<!-- END: HabitTracker -->
+<!-- BEGIN: BottomCharts -->
+<!-- END: BottomCharts -->
+</div>
+<!-- END: LeftColumn -->
+<!-- BEGIN: RightSidebarPanels -->
+<!-- END: RightSidebarPanels -->
+</div>
+</div>
+</main>
+<!-- END: MainContent -->
+</body></html>
