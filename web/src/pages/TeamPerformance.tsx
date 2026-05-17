@@ -1,4 +1,5 @@
 // Performance Dashboard — team overview with bonus tracking and risk status
+// CACHE_BUSTER_QWXPLNZ_2026_05_17_01
 import { useNavigate } from 'react-router-dom';
 import { TrendingUp, TrendingDown, Minus, AlertTriangle, DollarSign, Award, Target } from 'lucide-react';
 import { usePeriod, type PeriodPreset } from '../hooks/usePeriod';
